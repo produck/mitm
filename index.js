@@ -35,7 +35,7 @@ module.exports = function MitmHandler({
 			context.resBody = Buffer.from([]);
 			
 			proxyRes.on('data', data => {
-				context.resBody = Buffer.concat([context.resBody, data])
+				context.resBody = Buffer.concat([context.resBody, data]);
 			});
 
 			proxyRes.on('end', async () => {
@@ -45,7 +45,7 @@ module.exports = function MitmHandler({
 				res.end = () => {};
 
 				if (isGzip) {
-					context.resBody = pako.ungzip(context.resBody);
+					context.resBody = Buffer.from(pako.ungzip(context.resBody).buffer);
 				}
 				
 				let resBody = await responseOutgoing(context);
@@ -67,7 +67,7 @@ module.exports = function MitmHandler({
 			context.reqBody = Buffer.from([]);
 			
 			req.on('data', data => {
-				context.reqBody = Buffer.concat([context.reqBody, data])
+				context.reqBody = Buffer.concat([context.reqBody, data]);
 			});
 
 			req.on('end', async () => {
@@ -85,12 +85,10 @@ module.exports = function MitmHandler({
 		 */
 		const context = res.context = { req, res };
 		
-		if (requestIncoming) {
-			requestIncoming(context);
-		}
-
-		if (!res.finished) {
-			proxy.web(req, res, { target: new URL(req.url).origin });
+		if (requestIncoming && requestIncoming(context)) {
+			if (!res.finished) {
+				proxy.web(req, res, { target: new URL(req.url).origin });
+			}
 		}
 	});
 };
