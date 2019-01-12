@@ -1,8 +1,6 @@
 const httpProxy = require('http-proxy');
 const http = require('http');
 const debug = require('debug')('mitm');
-const pako = require('pako');
-const utils = require('./src/utils');
 
 module.exports = function MitmHandler({
 	requestIncoming,
@@ -39,17 +37,11 @@ module.exports = function MitmHandler({
 			});
 
 			proxyRes.on('end', async () => {
-				res.removeHeader('content-encoding');
-				const isGzip = utils.isGzipEncoding(proxyRes);
 				const _end = res.end;
 				res.end = () => {};
-
-				if (isGzip) {
-					context.resBody = Buffer.from(pako.ungzip(context.resBody).buffer);
-				}
 				
 				let resBody = await responseOutgoing(context);
-				
+
 				_end.call(res, resBody);
 			});
 		}
