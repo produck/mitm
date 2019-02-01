@@ -138,8 +138,3 @@ util.getTunnelAgent = (requestIsSSL, externalProxyUrl) => {
 		}
 	}
 };
-
-util.isGzipEncoding = function (res) {
-	const contentEncoding = res.headers['content-encoding'];
-	return !!(contentEncoding && contentEncoding.toLowerCase() == 'gzip');
-};
