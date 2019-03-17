@@ -1,6 +1,6 @@
 {
-  "name": "mitm",
-  "version": "1.0.0",
+  "name": "@lemonce3/mitm",
+  "version": "0.2.0",
   "description": "HTTP/HTTPS man in the middle proxy server",
   "main": "index.js",
   "bin": "src/bin/index.js",
@@ -25,5 +25,9 @@
     "mkdirp": "^0.5.1",
     "node-forge": "^0.7.6",
     "tunnel-agent": "^0.6.0"
-  }
+  },
+  "files": [
+    "src",
+    "index.js"
+  ]
 }
