@@ -1,0 +1,28 @@
+{
+  "name": "@lemonce3/mitm",
+  "version": "0.3.0",
+  "description": "HTTP/HTTPS man in the middle proxy server",
+  "main": "index.js",
+  "dependencies": {
+    "lru-cache": "^5.1.1"
+  },
+  "devDependencies": {
+    "mocha": "^6.0.2",
+    "request": "^2.88.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "typings": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lemonce3/mitm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lemonce3/mitm/issues"
+  },
+  "homepage": "https://github.com/lemonce3/mitm#readme"
+}
