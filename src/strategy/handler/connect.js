@@ -1,7 +1,6 @@
 const net = require('net');
 const url = require('url');
 const errorListener = require('./util/error');
-const shadow = require('./shadow');
 
 const BODY = 'HTTP/1.1 200 Connection Established\r\nProxy-agent: node-mitmproxy\r\n\r\n';
 const LOCAL_IP = '127.0.0.1';

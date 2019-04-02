@@ -1,6 +1,18 @@
 const fs = require('fs');
 
-const registry = {};
+class CertificateStore{
+	constructor() {
+
+	}
+
+	fetch() {
+
+	}
+
+	init() {
+
+	}
+}
 
 exports.fetch = function fetchCA(host) {
 	const existedCA = registry[host];
