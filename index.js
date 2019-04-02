@@ -2,7 +2,7 @@ global.config = {
 	ssl: null
 };
 
-exports.MitmServer = require('./src/server');
+exports.Server = require('./src/server');
 exports.Strategy = require('./src/strategy');
 
 const DEFAULT_SSL_TIMEOUT = 1000;

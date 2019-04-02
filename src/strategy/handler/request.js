@@ -1,9 +1,10 @@
 const http = require('http');
 const https = require('https');
-const getReadableData = require('../util/get-readable-data');
-const getRequestOptions = require('../util/get-request-options');
+const errorHandler = require('./util/error');
+const getReadableData = require('./util/get-readable-data');
+const getRequestOptions = require('./util/get-request-options');
 
-module.exports = function createRequestHandler(interceptor) {
+module.exports = function createRequestHandler(requestInterceptor, responseInterceptor) {
 	return async function RequestHandler(clientRequest, clientResponse) {
 		const ctx = {
 			clientRequest,
@@ -19,7 +20,7 @@ module.exports = function createRequestHandler(interceptor) {
 			}
 		};
 
-		await interceptor.request(ctx);
+		await requestInterceptor(ctx);
 
 		if (!clientRequest.readableFlowing && ctx.requestBody === null) {
 			ctx.requestBody = await getReadableData(clientRequest);
@@ -30,7 +31,7 @@ module.exports = function createRequestHandler(interceptor) {
 		await new Promise((resolve, reject) => {
 			proxyRequest.on('response', async proxyResponse => {
 				ctx.proxyResponse = proxyResponse;
-				await interceptor.response(ctx);
+				await responseInterceptor(ctx);
 
 				if (!proxyResponse.readableFlowing && ctx.responseBody === null) {
 					ctx.responseBody = await getReadableData(proxyResponse);

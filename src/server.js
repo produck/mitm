@@ -1,33 +1,59 @@
 const http = require('http');
-const createRequestHandler = require('./create-request-handler');
-const createConnectHandler = require('./create-connect-handler');
+const lruCache = require('lru-cache');
 
-const LOCAL_IP = '127.0.0.1';
+const DEFAULT_LENGTH = 100;
+
+class ShadowRegistry {
+	constructor(length = DEFAULT_LENGTH) {
+		this.cache = new lruCache({
+			max: length,
+			dispose(_, shadow) {
+				shadow.close();
+			}
+		});
+	}
+
+	fetch(host, port) {
+		const serverName = `${host}:${port}`;
+		const existedServer = this.cache.get(serverName);
+	
+		if (existedServer) {
+			return existedServer;
+		}
+		
+		const server = https.createServer({
+			key: '',
+			cert: ''
+		})
+		
+		this.cache.set(serverName, server);
+	
+		return server;
+	}
+
+	destory() {
+		this.cache.reset();
+	}
+}
 
 module.exports = class MitmServer {
-	constructor(strategy) {
+	constructor(strategy, options) {
 		const server = this.server = http.createServer();
-		const requestHandler = createRequestHandler(strategy.interceptor);
-		const connectHandler = createConnectHandler(strategy.interceptor.sslConnect);
+		const shadowStore = this.shadowStore = 
+			new ShadowRegistry(/* options.shadow.length */);
 
-		server.on('request', (clientRequest, clientResponse) => {
-			requestHandler(clientRequest, clientResponse);
-		});
+		server.on('connect', strategy.ConnectHandler(shadowStore));
+		server.on('upgrade', strategy.handler.upgrade);
+		server.on('request', strategy.handler.request);
 
-		server.on('connect', (clientRequest, socket, head) => {
-			connectHandler(clientRequest, socket, head);
-		});
-
-		server.on('upgrade', (clientRequest, socket, head) => {
-			
-		})
 	}
 
 	listen(port) {
-		
+		this.server.listen(port);
 	}
 
-	config() {
-
+	close() {
+		this.server.close();
+		this.shadowStore.destory();
 	}
 }

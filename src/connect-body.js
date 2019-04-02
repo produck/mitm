@@ -1,1 +1,0 @@
-module.export = 'HTTP/1.1 200 Connection Established\r\nProxy-agent: node-mitmproxy\r\n\r\n'
