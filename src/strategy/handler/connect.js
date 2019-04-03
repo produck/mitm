@@ -16,8 +16,8 @@ function connect(socket, head, hostname, port) {
 	});
 }
 
-module.exports = function createConnectHandler(sslConnectInterceptor) {
-	return function (shadowRegistry) {
+module.exports = function createConnectHandlerFactory(sslConnectInterceptor) {
+	return function ConnectHandlerFactory(shadowRegistry) {
 		return function connectHandler(clientRequest, socket, head) {
 			const [hostname, port] = clientRequest.url.split(':');
 

@@ -35,7 +35,7 @@ module.exports = class CertificateStore {
 		}
 	}
 
-	init() {
+	init() {//async
 		fs.mkdirSync(this.path, { recursive: true });
 		fs.readdirSync(this.path).forEach(filename => {
 			this.cache[filename] = require(path.join(this.path, filename));

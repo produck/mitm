@@ -1,65 +1,12 @@
+const EventEmitter = require('events');
 const http = require('http');
-const https = require('https');
-const tls = require('tls');
-const lruCache = require('lru-cache');
 const CertificateStore = require('./certificate/store');
+const ShadowStore = require('./shadow');
 
-const DEFAULT_LENGTH = 100;
-
-class ShadowStore {
-	constructor(mitmServer, length = DEFAULT_LENGTH) {
-		this.mitmServer = mitmServer;
-		this.cache = new lruCache({
-			max: length,
-			dispose(_, shadow) {
-				shadow.close();
-			}
-		});
-	}
-
-	get strategy() {
-		return this.mitmServer.strategy;
-	}
-
-	fetch(hostname, port) {
-		const { certificateStore } = this.mitmServer;
-		const serverName = `${hostname}:${port}`;
-		const existedServer = this.cache.get(serverName);
-
-		if (existedServer) {
-			return existedServer;
-		}
-
-		const certKeyPair = certificateStore.fetch(hostname);
-		const server = https.createServer({
-			key: certKeyPair.privateKey,
-			cert: certKeyPair.certificate,
-			SNICallback(hostname, cb) {
-				const certKeyPair = certificateStore.fetch(hostname);
-
-				cb(null, tls.createSecureContext({
-					key: certKeyPair.privateKey,
-					cert: certKeyPair.certificate
-				}));
-			}
-		});
-
-		server.on('upgrade', this.strategy.handler.upgrade);
-		server.on('request', this.strategy.RequestHandler({ hostname, port }));
-		server.listen();
-
-		this.cache.set(serverName, server);
-
-		return server;
-	}
-
-	destory() {
-		this.cache.reset();
-	}
-}
-
-module.exports = class MitmServer {
+module.exports = class MitmServer extends EventEmitter{
 	constructor(strategy, options) {
+		super();
+
 		const server = this.server = http.createServer();
 		const shadowStore = this.shadowStore =
 			new ShadowStore(this/* ,options.shadow.length */);
@@ -74,6 +21,7 @@ module.exports = class MitmServer {
 
 	listen(port) {
 		this.server.listen(port);
+		this.emit('listening', this);
 	}
 
 	close() {

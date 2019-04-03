@@ -16,8 +16,8 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 	}
 }
 
-module.exports = function createRequestHandler(requestInterceptor, responseInterceptor) {
-	return function (target) {
+module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
+	return function RequestHandlerFactory(httpsTarget) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const ctx = {
 				clientRequest,
@@ -27,7 +27,7 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
 				proxyResponse: null,
 				responseBody: null,
 				options: {
-					request: mergeRequestOptions(clientRequest, target),
+					request: mergeRequestOptions(clientRequest, httpsTarget),
 					response: {}
 				}
 			};
@@ -59,7 +59,7 @@ module.exports = function createRequestHandler(requestInterceptor, responseInter
 					clientRequest.abort();
 				});
 
-				clientRequest.on('aborted', () => proxyRequest.abort())
+				clientRequest.on('aborted', () => proxyRequest.abort());
 
 				proxyRequest.end(ctx.requestBody);
 			});

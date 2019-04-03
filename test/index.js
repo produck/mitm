@@ -91,12 +91,16 @@ describe('strategy', function () {
 	});
 
 	it('gethttps', async function () {
-		const { data } = await axios.get('https://www.baidu.com', {
-			proxy: {
-				host: 'localhost',
-				port: 6666
-			}
-		});
+		try {
+			const { data } = await axios.get('https://www.baidu.com', {
+				proxy: {
+					host: 'localhost',
+					port: 6666
+				}
+			});
+		} catch (error) {
+			console.log(error)
+		}
 
 		console.log(data);
 	});
