@@ -3,11 +3,11 @@ const Handler = require('./handler');
 module.exports = class Strategy {
 	constructor(interceptorOptions) {
 		const { sslConnect, request, response } = interceptorOptions;
-		
+
 		this.ConnectHandler = Handler.Connect(sslConnect);
+		this.RequestHandler = Handler.Request(request, response);
 
 		this.handler = {
-			request: Handler.Request(request, response),
 			upgrade: Handler.Upgrade()
 		};
 

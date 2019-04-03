@@ -1,5 +1,4 @@
 const net = require('net');
-const url = require('url');
 const errorListener = require('./util/error');
 
 const BODY = 'HTTP/1.1 200 Connection Established\r\nProxy-agent: node-mitmproxy\r\n\r\n';
@@ -20,17 +19,17 @@ function connect(socket, head, hostname, port) {
 module.exports = function createConnectHandler(sslConnectInterceptor) {
 	return function (shadowRegistry) {
 		return function connectHandler(clientRequest, socket, head) {
-			const { hostname, port } = url.parse(clientRequest.url);
-			
+			const [hostname, port] = clientRequest.url.split(':');
+
 			if (sslConnectInterceptor(clientRequest, socket, head)) {
-				const fakeServer = shadowRegistry.fetch(hostname, port);
-				
-				connect(socket, head, LOCAL_IP, fakeServer.port);
+				const shadowAddress = shadowRegistry.fetch(hostname, port).address();
+
+				connect(socket, head, LOCAL_IP, shadowAddress.port);
 			} else {
 				connect(socket, head, hostname, port);
 			}
-	
-			socket.on('error', errorListener);		
+
+			socket.on('error', errorListener);
 		}
 
 	}
