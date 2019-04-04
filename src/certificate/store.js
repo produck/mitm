@@ -29,7 +29,7 @@ module.exports = class CertificateStore {
 		} else {
 			const newCertKeyPair = createCertKeyPair(hostname, this.ca);
 
-			fs.writeFile(path.join(this.path, `${hostname}.json`), JSON.stringify(newCertKeyPair), error => console.log(error));
+			fs.writeFile(path.join(this.path, `${hostname}.json`), JSON.stringify(newCertKeyPair), error => {});
 
 			return this.cache[hostname] = newCertKeyPair;
 		}

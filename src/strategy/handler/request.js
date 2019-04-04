@@ -2,6 +2,8 @@ const http = require('http');
 const https = require('https');
 const getReadableData = require('./util/get-readable-data');
 
+const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
+
 function mergeRequestOptions(clientRequest, httpsTarget) {
 	const url = new URL(httpsTarget ?
 		`https://${httpsTarget.hostname}:${httpsTarget.port}${clientRequest.url}` :
@@ -12,8 +14,9 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 		protocal: url.protocol,
 		host: url.hostname,
 		port: url.port,
-		path: url.pathname,
-		headers: clientRequest.headers
+		path: url.pathname + url.search,
+		headers: clientRequest.headers,
+		timeout: DEFAULT_REQUEST_TIMEOUT
 	}
 }
 
@@ -38,41 +41,35 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 			if (!clientRequest.readableFlowing && ctx.requestBody === null) {
 				ctx.requestBody = await getReadableData(clientRequest);
 			}
-
+			
 			const proxyRequest = ctx.proxyRequest = (httpsTarget ? https : http).request(ctx.options.request);
 
-			await new Promise((resolve, reject) => {
-				proxyRequest.on('response', async proxyResponse => {
-					ctx.proxyResponse = proxyResponse;
-					ctx.options.response.statusCode = proxyResponse.statusCode;
-					ctx.options.response.statusMessage = proxyResponse.statusMessage;
-					ctx.options.response.headers = proxyResponse.headers;
+			proxyRequest.on('response', async proxyResponse => {
+				delete proxyResponse.headers['content-length'];
 
-					await responseInterceptor(ctx);
+				ctx.proxyResponse = proxyResponse;
+				ctx.options.response.statusCode = proxyResponse.statusCode;
+				ctx.options.response.statusMessage = proxyResponse.statusMessage;
+				ctx.options.response.headers = proxyResponse.headers;
 
-					if (!proxyResponse.readableFlowing && ctx.responseBody === null) {
-						ctx.responseBody = await getReadableData(proxyResponse);
-					}
+				await responseInterceptor(ctx);
 
-					resolve();
-				});
+				if (!proxyResponse.readableFlowing && ctx.responseBody === null) {
+					ctx.responseBody = await getReadableData(proxyResponse);
+				}
 
-				proxyRequest.on('timeout', () => reject('timeout'));
-				proxyRequest.on('error', error => reject(error));
-				proxyRequest.on('aborted', () => {
-					reject('server aborted request');
-					clientRequest.abort();
-				});
-
-				clientRequest.on('aborted', () => proxyRequest.abort());
-
-				proxyRequest.end(ctx.requestBody);
+				clientResponse.statusCode = ctx.options.response.statusCode;
+				clientResponse.statusMessage = ctx.options.response.statusMessage;
+				Object.keys(ctx.options.response.headers).forEach(key => clientResponse.setHeader(key, ctx.options.response.headers[key]));
+				clientResponse.end(ctx.responseBody);
 			});
 
-			clientResponse.statusCode = ctx.options.response.statusCode;
-			clientResponse.statusMessage = ctx.options.response.statusMessage;
-			Object.keys(ctx.options.response.headers).forEach(key => clientResponse.setHeader(key, ctx.options.response.headers[key]));
-			clientResponse.end(ctx.responseBody);
+			proxyRequest.on('timeout', () => {});
+			proxyRequest.on('error', error => {});
+			proxyRequest.on('aborted', () => clientRequest.abort());
+			clientRequest.on('aborted', () => proxyRequest.abort());
+
+			proxyRequest.end(ctx.requestBody);
 		}
 	}
 }

@@ -91,32 +91,30 @@ describe('strategy', function () {
 	});
 
 	it('gethttp', async function () {
-		try {
-			const responseA = await axios.get(`http://www.ruanyifeng.com`, {
-				proxy: {
-					host: 'localhost',
-					port: 6789
-				}
-			});
-
-			const responseB = await axios.get(`http://www.ruanyifeng.com`);
-			assert.equal(responseA.data, responseB.data);
-		} catch (error) {
-			console.log(error)
-		}
-
+		const responseA = await axios.get(`http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85`, {
+			proxy: {
+				host: 'localhost',
+				port: 6789
+			},
+			responseType: 'arraybuffer'
+		});
 		
+		const responseB = await axios.get(`http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85`, {
+			responseType: 'arraybuffer'
+		});
+		assert.deepEqual(responseA.data, responseB.data);
 	})
 
-	it('gethttps', async function () {
+	it.only('gethttps', async function () {
+		const url = 'https://ebank.eximbank.gov.cn/eweb/';
 		try {
-			const responseA = await axios.get('https://www.baidu.com', {
-				proxy: {
-					host: 'localhost',
-					port: 6789
-				}
-			});
-			const responseB = await axios.get('https://www.baidu.com');
+			// const responseA = await axios.get(url, {
+			// 	proxy: {
+			// 		host: 'localhost',
+			// 		port: 6789
+			// 	}
+			// });
+			const responseB = await axios.get(url);
 			assert.equal(responseA.data, responseB.data);
 		} catch (error) {
 			console.log(error)
