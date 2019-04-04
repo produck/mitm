@@ -16,7 +16,7 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 		port: url.port,
 		path: url.pathname + url.search,
 		headers: clientRequest.headers,
-		timeout: DEFAULT_REQUEST_TIMEOUT
+		timeout: DEFAULT_REQUEST_TIMEOUT,
 	}
 }
 
@@ -42,15 +42,16 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				ctx.requestBody = await getReadableData(clientRequest);
 			}
 			
-			const proxyRequest = ctx.proxyRequest = (httpsTarget ? https : http).request(ctx.options.request);
+			const proxyRequest = ctx.proxyRequest = (ctx.options.request.protocal === 'https:' ? https : http).request(ctx.options.request);
 
 			proxyRequest.on('response', async proxyResponse => {
 				delete proxyResponse.headers['content-length'];
-
+				
 				ctx.proxyResponse = proxyResponse;
 				ctx.options.response.statusCode = proxyResponse.statusCode;
 				ctx.options.response.statusMessage = proxyResponse.statusMessage;
 				ctx.options.response.headers = proxyResponse.headers;
+				ctx.options.response.headers['connection'] = 'close';
 
 				await responseInterceptor(ctx);
 

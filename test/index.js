@@ -1,5 +1,5 @@
 const http = require('http');
-// const https = require('https');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
@@ -67,6 +67,9 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 // 	});
 // });
 
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+
 describe('strategy', function () {
 	let mitmServer = null;
 
@@ -82,7 +85,7 @@ describe('strategy', function () {
 				cert: rootCA.cert
 			}
 		});
-		mitmServer.listen(6789);
+		mitmServer.listen(2344);
 	});
 
 	this.afterAll(function () {
@@ -91,34 +94,36 @@ describe('strategy', function () {
 	});
 
 	it('gethttp', async function () {
-		const responseA = await axios.get(`http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85`, {
+		const url = 'http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85';
+		const responseA = await axios.get(url, {
 			proxy: {
 				host: 'localhost',
-				port: 6789
+				port: 2344
 			},
 			responseType: 'arraybuffer'
 		});
-		
-		const responseB = await axios.get(`http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85`, {
+
+		const responseB = await axios.get(url, {
 			responseType: 'arraybuffer'
 		});
 		assert.deepEqual(responseA.data, responseB.data);
 	})
 
-	it.only('gethttps', async function () {
-		const url = 'https://ebank.eximbank.gov.cn/eweb/';
-		try {
-			// const responseA = await axios.get(url, {
-			// 	proxy: {
-			// 		host: 'localhost',
-			// 		port: 6789
-			// 	}
-			// });
-			const responseB = await axios.get(url);
-			assert.equal(responseA.data, responseB.data);
-		} catch (error) {
-			console.log(error)
-		}
-
+	it('gethttps', async function () {
+		const url = 'https://www.baidu.com';
+		// const url = 'https://ebank.eximbank.gov.cn/eweb/';
+		const responseA = await axios.get(url, {
+			proxy: {
+				host: 'localhost',
+				port: 2344
+			},
+			responseType: 'arraybuffer',
+			// httpAgent,
+			// httpsAgent
+		});
+		const responseB = await axios.get(url, {
+			responseType: 'arraybuffer'
+		});
+		assert.deepEqual(responseA.data, responseB.data);
 	});
 });

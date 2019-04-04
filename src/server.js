@@ -14,6 +14,8 @@ module.exports = class MitmServer extends EventEmitter{
 		this.certificateStore = new CertificateStore(options.ssl.cert, options.ssl.key);
 		this.strategy = strategy;
 
+		server.keepAliveTimeout = 0;
+
 		server.on('connect', strategy.ConnectHandler(shadowStore));
 		server.on('upgrade', strategy.handler.upgrade);
 		server.on('request', strategy.RequestHandler());
