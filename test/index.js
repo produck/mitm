@@ -82,7 +82,7 @@ describe('strategy', function () {
 				cert: rootCA.cert
 			}
 		});
-		mitmServer.listen(6666);
+		mitmServer.listen(6789);
 	});
 
 	this.afterAll(function () {
@@ -90,18 +90,37 @@ describe('strategy', function () {
 		testServer.close();
 	});
 
-	it('gethttps', async function () {
+	it('gethttp', async function () {
 		try {
-			const { data } = await axios.get('https://www.baidu.com', {
+			const responseA = await axios.get(`http://www.ruanyifeng.com`, {
 				proxy: {
 					host: 'localhost',
-					port: 6666
+					port: 6789
 				}
 			});
+
+			const responseB = await axios.get(`http://www.ruanyifeng.com`);
+			assert.equal(responseA.data, responseB.data);
 		} catch (error) {
 			console.log(error)
 		}
 
-		console.log(data);
+		
+	})
+
+	it('gethttps', async function () {
+		try {
+			const responseA = await axios.get('https://www.baidu.com', {
+				proxy: {
+					host: 'localhost',
+					port: 6789
+				}
+			});
+			const responseB = await axios.get('https://www.baidu.com');
+			assert.equal(responseA.data, responseB.data);
+		} catch (error) {
+			console.log(error)
+		}
+
 	});
 });

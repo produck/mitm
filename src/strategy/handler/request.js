@@ -1,9 +1,10 @@
 const http = require('http');
+const https = require('https');
 const getReadableData = require('./util/get-readable-data');
 
 function mergeRequestOptions(clientRequest, httpsTarget) {
 	const url = new URL(httpsTarget ?
-		`https://${httpsTarget.hostname}:${httpsTarget.port}` :
+		`https://${httpsTarget.hostname}:${httpsTarget.port}${clientRequest.url}` :
 		clientRequest.url);
 
 	return {
@@ -11,7 +12,7 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 		protocal: url.protocol,
 		host: url.hostname,
 		port: url.port,
-		path: url.path,
+		path: url.pathname,
 		headers: clientRequest.headers
 	}
 }
@@ -38,11 +39,15 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				ctx.requestBody = await getReadableData(clientRequest);
 			}
 
-			const proxyRequest = ctx.proxyRequest = http.request(ctx.options.request);
+			const proxyRequest = ctx.proxyRequest = (httpsTarget ? https : http).request(ctx.options.request);
 
 			await new Promise((resolve, reject) => {
 				proxyRequest.on('response', async proxyResponse => {
 					ctx.proxyResponse = proxyResponse;
+					ctx.options.response.statusCode = proxyResponse.statusCode;
+					ctx.options.response.statusMessage = proxyResponse.statusMessage;
+					ctx.options.response.headers = proxyResponse.headers;
+
 					await responseInterceptor(ctx);
 
 					if (!proxyResponse.readableFlowing && ctx.responseBody === null) {
@@ -64,6 +69,9 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.end(ctx.requestBody);
 			});
 
+			clientResponse.statusCode = ctx.options.response.statusCode;
+			clientResponse.statusMessage = ctx.options.response.statusMessage;
+			Object.keys(ctx.options.response.headers).forEach(key => clientResponse.setHeader(key, ctx.options.response.headers[key]));
 			clientResponse.end(ctx.responseBody);
 		}
 	}

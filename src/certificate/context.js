@@ -25,7 +25,7 @@ function getExtensionSAN(hostname = '') {
 const THIS_YEAR = new Date().getFullYear();
 
 function getDateOffsetYear(length) {
-  return new Date(THIS_YEAR + length);
+  return new Date(String(THIS_YEAR + length));
 }
 
 module.exports = function generateCertsForHostname(hostname, rootCA) {
