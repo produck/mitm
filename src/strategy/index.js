@@ -6,10 +6,7 @@ module.exports = class Strategy {
 
 		this.ConnectHandler = Handler.Connect(sslConnect);
 		this.RequestHandler = Handler.Request(request, response);
-
-		this.handler = {
-			upgrade: Handler.Upgrade()
-		};
+		this.UpgradeHandler = Handler.Upgrade();
 
 		this.config = {};
 	}
@@ -22,12 +19,12 @@ module.exports = class Strategy {
 		return false;
 	}
 
-	static DEFAULT_REQUEST() {
-		return;
+	static DEFAULT_REQUEST(ctx, forward) {
+		forward();
 	}
 
-	static DEFAULT_RESPONSE() {
-		return;
+	static DEFAULT_RESPONSE(ctx, respond) {
+		respond();
 	}
 
 	static create({

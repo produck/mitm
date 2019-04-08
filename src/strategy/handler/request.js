@@ -1,6 +1,6 @@
 const http = require('http');
 const https = require('https');
-const getReadableData = require('./util/get-readable-data');
+const stream = require('stream');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
@@ -11,7 +11,7 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 
 	return {
 		method: clientRequest.method,
-		protocal: url.protocol,
+		protocol: url.protocol,
 		host: url.hostname,
 		port: url.port,
 		path: url.pathname + url.search,
@@ -24,53 +24,59 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 	return function RequestHandlerFactory(httpsTarget) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const ctx = {
-				clientRequest,
-				clientResponse,
-				requestBody: null,
-				proxyRequest: null,
-				proxyResponse: null,
-				responseBody: null,
-				options: {
-					request: mergeRequestOptions(clientRequest, httpsTarget),
-					response: {}
+				request: {
+					options: mergeRequestOptions(clientRequest, httpsTarget),
+					body: clientRequest,
+				},
+				response: {
+					statusCode: null,
+					statusMessage: null,
+					header: null,
+					body: null
 				}
 			};
 
-			await requestInterceptor(ctx);
+			function respond() {
+				clientResponse.statusCode = ctx.response.statusCode;
+				clientResponse.statusMessage = ctx.response.statusMessage;
 
-			if (!clientRequest.readableFlowing && ctx.requestBody === null) {
-				ctx.requestBody = await getReadableData(clientRequest);
-			}
-			
-			const proxyRequest = ctx.proxyRequest = (ctx.options.request.protocal === 'https:' ? https : http).request(ctx.options.request);
+				Object.keys(ctx.response.header).forEach(key => {
+					clientResponse.setHeader(key, ctx.response.header[key]);
+				});
 
-			proxyRequest.on('response', async proxyResponse => {
-				delete proxyResponse.headers['content-length'];
-				
-				ctx.proxyResponse = proxyResponse;
-				ctx.options.response.statusCode = proxyResponse.statusCode;
-				ctx.options.response.statusMessage = proxyResponse.statusMessage;
-				ctx.options.response.headers = proxyResponse.headers;
-				ctx.options.response.headers['connection'] = 'close';
-
-				await responseInterceptor(ctx);
-
-				if (!proxyResponse.readableFlowing && ctx.responseBody === null) {
-					ctx.responseBody = await getReadableData(proxyResponse);
+				if (ctx.response.body instanceof stream.Readable) {
+					ctx.response.body.pipe(clientResponse);
+				} else {
+					clientResponse.end(ctx.response.body);
 				}
+			}
 
-				clientResponse.statusCode = ctx.options.response.statusCode;
-				clientResponse.statusMessage = ctx.options.response.statusMessage;
-				Object.keys(ctx.options.response.headers).forEach(key => clientResponse.setHeader(key, ctx.options.response.headers[key]));
-				clientResponse.end(ctx.responseBody);
-			});
+			await requestInterceptor(ctx, function forward() {
+				const isHTTPS = ctx.request.options.protocol === 'https:';
+				const proxyRequest = (isHTTPS ? https : http).request(ctx.request.options);
 
-			proxyRequest.on('timeout', () => {});
-			proxyRequest.on('error', error => {});
-			proxyRequest.on('aborted', () => clientRequest.abort());
-			clientRequest.on('aborted', () => proxyRequest.abort());
+				proxyRequest.on('timeout', () => { });
+				proxyRequest.on('error', error => { });
+				proxyRequest.on('aborted', () => clientRequest.abort());
+				clientRequest.on('aborted', () => proxyRequest.abort());
 
-			proxyRequest.end(ctx.requestBody);
+				proxyRequest.on('response', async proxyResponse => {
+					delete proxyResponse.headers['content-length'];
+
+					ctx.response.statusCode = proxyResponse.statusCode;
+					ctx.response.statusMessage = proxyResponse.statusMessage;
+					ctx.response.header = proxyResponse.headers;
+					ctx.response.body = proxyResponse;
+
+					await responseInterceptor(ctx, respond);
+				});
+
+				if (ctx.request.body instanceof stream.Readable) {
+					ctx.request.body.pipe(proxyRequest);
+				} else {
+					proxyRequest.end(ctx.request.body);
+				}
+			}, respond);
 		}
 	}
 }

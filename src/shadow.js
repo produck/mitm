@@ -40,7 +40,7 @@ module.exports = class ShadowStore {
 
 		const strategy = this.mitmServer.strategy;
 
-		server.on('upgrade', strategy.handler.upgrade);
+		server.on('upgrade', strategy.UpgradeHandler({ hostname, port }));
 		server.on('request', strategy.RequestHandler({ hostname, port }));
 		server.listen();
 

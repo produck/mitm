@@ -17,7 +17,7 @@ module.exports = class MitmServer extends EventEmitter{
 		server.keepAliveTimeout = 0;
 
 		server.on('connect', strategy.ConnectHandler(shadowStore));
-		server.on('upgrade', strategy.handler.upgrade);
+		server.on('upgrade', strategy.UpgradeHandler());
 		server.on('request', strategy.RequestHandler());
 	}
 
