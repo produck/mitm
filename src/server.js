@@ -3,7 +3,7 @@ const http = require('http');
 const CertificateStore = require('./certificate/store');
 const ShadowStore = require('./shadow');
 
-module.exports = class MitmServer extends EventEmitter{
+module.exports = class MitmServer extends EventEmitter {
 	constructor(strategy, options) {
 		super();
 

@@ -3,9 +3,9 @@ const https = require('https');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
-function mergeRequestOptions(clientRequest, httpsTarget) {
-	const url = new URL(httpsTarget ?
-		`https://${httpsTarget.hostname}:${httpsTarget.port}${clientRequest.url}` :
+function mergeRequestOptions(clientRequest, connectTarget) {
+	const url = new URL(connectTarget ?
+		`https://${connectTarget.hostname}:${connectTarget.port}${clientRequest.url}` :
 		clientRequest.url);
 
 	return {
@@ -20,9 +20,9 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 }
 
 module.exports = function createUpgradeHandlerFactory() {
-	return function upgradeHandlerFactory(httpsTarget) {
+	return function upgradeHandlerFactory(connectTarget) {
 		return function upgradeHandler(clientRequest, clientSocket, head) {
-			const requestOptions = mergeRequestOptions(clientRequest, httpsTarget);
+			const requestOptions = mergeRequestOptions(clientRequest, connectTarget);
 
 			const isHTTPS = requestOptions.protocol === 'https:';
 			const proxyRequest = (isHTTPS ? https : http).request(requestOptions);

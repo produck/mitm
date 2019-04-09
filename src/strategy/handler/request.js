@@ -4,9 +4,9 @@ const stream = require('stream');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
-function mergeRequestOptions(clientRequest, httpsTarget) {
-	const url = new URL(httpsTarget ?
-		`https://${httpsTarget.hostname}:${httpsTarget.port}${clientRequest.url}` :
+function mergeRequestOptions(clientRequest, connectTarget) {
+	const url = new URL(connectTarget ?
+		`https://${connectTarget.hostname}:${connectTarget.port}${clientRequest.url}` :
 		clientRequest.url);
 
 	return {
@@ -21,11 +21,11 @@ function mergeRequestOptions(clientRequest, httpsTarget) {
 }
 
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(httpsTarget) {
+	return function RequestHandlerFactory(connectTarget) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const ctx = {
 				request: {
-					options: mergeRequestOptions(clientRequest, httpsTarget),
+					options: mergeRequestOptions(clientRequest, connectTarget),
 					body: clientRequest,
 				},
 				response: {
