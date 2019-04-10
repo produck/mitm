@@ -3,9 +3,19 @@ const http = require('http');
 const CertificateStore = require('./certificate/store');
 const ShadowStore = require('./shadow');
 
+const DEV_CERT = require('./dev-cert');
+
 module.exports = class MitmServer extends EventEmitter {
 	constructor(strategy, options) {
 		super();
+
+		if (!options) {
+			options = {};
+		}
+
+		if (!options.ssl) {
+			options.ssl = DEV_CERT;
+		}
 
 		const server = this.server = http.createServer();
 		const shadowStore = this.shadowStore =
