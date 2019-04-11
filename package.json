@@ -26,5 +26,9 @@
   "bugs": {
     "url": "https://github.com/lemonce3/mitm/issues"
   },
+  "files": [
+    "/index.js",
+    "/src"
+  ],
   "homepage": "https://github.com/lemonce3/mitm#readme"
 }
