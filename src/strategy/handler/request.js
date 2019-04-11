@@ -31,7 +31,7 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				response: {
 					statusCode: null,
 					statusMessage: null,
-					header: null,
+					headers: null,
 					body: null
 				}
 			};
@@ -40,8 +40,8 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				clientResponse.statusCode = ctx.response.statusCode;
 				clientResponse.statusMessage = ctx.response.statusMessage;
 
-				Object.keys(ctx.response.header).forEach(key => {
-					clientResponse.setHeader(key, ctx.response.header[key]);
+				Object.keys(ctx.response.headers).forEach(key => {
+					clientResponse.setHeader(key, ctx.response.headers[key]);
 				});
 
 				if (ctx.response.body instanceof stream.Readable) {
@@ -65,7 +65,7 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 
 					ctx.response.statusCode = proxyResponse.statusCode;
 					ctx.response.statusMessage = proxyResponse.statusMessage;
-					ctx.response.header = proxyResponse.headers;
+					ctx.response.headers = proxyResponse.headers;
 					ctx.response.body = proxyResponse;
 
 					await responseInterceptor(ctx, respond);

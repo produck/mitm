@@ -1,43 +1,59 @@
-const EventEmitter = require('events');
 const http = require('http');
-const CertificateStore = require('./certificate/store');
+const EventEmitter = require('events');
+const Strategy = require('./strategy');
+const CertificateStore = require('./certificate');
 const ShadowStore = require('./shadow');
-
-const DEV_CERT = require('./dev-cert');
 
 module.exports = class MitmServer extends EventEmitter {
 	constructor(strategy, options) {
 		super();
 
-		if (!options) {
-			options = {};
-		}
+		const { server, certificateStore } = options;
 
-		if (!options.ssl) {
-			options.ssl = DEV_CERT;
-		}
+		this.options = options;
+		this.server = server;
+		this.shadowStore = new ShadowStore(this/* ,options.shadow.length */);
 
-		const server = this.server = http.createServer();
-		const shadowStore = this.shadowStore =
-			new ShadowStore(this/* ,options.shadow.length */);
-
-		this.certificateStore = new CertificateStore(options.ssl.cert, options.ssl.key);
+		this.certificateStore = certificateStore;
 		this.strategy = strategy;
 
 		server.keepAliveTimeout = 0;
 
-		server.on('connect', strategy.ConnectHandler(shadowStore));
+		server.on('connect', strategy.ConnectHandler(this));
 		server.on('upgrade', strategy.UpgradeHandler());
 		server.on('request', strategy.RequestHandler());
+		server.on('close', () => this.shadowStore.destory());
 	}
 
-	listen(port) {
-		this.server.listen(port);
-		this.emit('listening', this);
+	get isSecure() {
+		return Boolean(this.options.ssl);
 	}
 
-	close() {
-		this.server.close();
-		this.shadowStore.destory();
+	static create(strategy, options) {
+		if (!Strategy.isStrategy(strategy)) {
+			throw new Error('A strategy instant MUST be provided.');
+		}
+
+		if (!(options.server instanceof http.Server)) {
+			throw new Error('`options.server` MUST be a http.Server.');
+		}
+
+		if (options.ssl) {
+			if (!options.certificateStore) {
+				options.certificateStore = new CertificateStore(options.ssl.cert, options.ssl.key);
+			} else if (!CertificateStore.isCertificateStore(options.certificateStore)) {
+				throw new Error('`options.certificateStore` MUST be a CertificateStore.')
+			}
+		}
+
+		if (options.log) {
+			if (!(options.log instanceof Function)) {
+				throw new Error('`options.log MUST be a Function`');
+			}
+		} else {
+			options.log = () => {};
+		}
+
+		return new this(strategy, options);
 	}
 }

@@ -1,3 +1,4 @@
+const EventEmitter = require('events');
 const net = require('net');
 const forge = require('node-forge');
 
@@ -28,23 +29,23 @@ function getDateOffsetYear(length) {
   return new Date(String(THIS_YEAR + length));
 }
 
-module.exports = function generateCertsForHostname(hostname, rootCA) {
+function generateCertsForHostname(hostname, rootCA) {
   const keys = forge.pki.rsa.generateKeyPair(1024);
   const cert = forge.pki.createCertificate();
 
   cert.publicKey = keys.publicKey;
-	cert.serialNumber = Math.random().toString(16).substr(2, 8);
+  cert.serialNumber = Math.random().toString(16).substr(2, 8);
 
   cert.validity.notBefore = getDateOffsetYear(-1);
-  cert.validity.notAfter= getDateOffsetYear(19);
-	
+  cert.validity.notAfter = getDateOffsetYear(19);
+
   const caCert = forge.pki.certificateFromPem(rootCA.cert);
   const caKey = forge.pki.privateKeyFromPem(rootCA.key);
 
   // issuer from CA
   cert.setIssuer(caCert.subject.attributes);
 
-	// sign cn
+  // sign cn
   const attrs = defaultAttrs.concat([
     { name: 'commonName', value: hostname }
   ]);
@@ -64,4 +65,32 @@ module.exports = function generateCertsForHostname(hostname, rootCA) {
     publicKey: forge.pki.publicKeyToPem(keys.publicKey),
     certificate: forge.pki.certificateToPem(cert)
   };
+}
+
+
+module.exports = class CertificateStore extends EventEmitter {
+  constructor(caCert, caKey, initData = {}) {
+    super();
+
+    this.cache = initData;
+    this.ca = { cert: caCert, key: caKey };
+  }
+
+  fetch(hostname) {
+    const existed = this.cache[hostname];
+
+    if (existed) {
+      return existed;
+    } else {
+      const newCertKeyPair = generateCertsForHostname(hostname, this.ca);
+
+      this.emit('signed', { hostname, newCertKeyPair });
+
+      return this.cache[hostname] = newCertKeyPair;
+    }
+  }
+
+  static isCertificateStore(any) {
+    return any instanceof this;
+  }
 }

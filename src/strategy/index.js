@@ -1,18 +1,26 @@
-const Handler = require('./handler');
+const HandlerFactory = {
+	Connect: require('./handler/connect'),
+	Request: require('./handler/request'),
+	Upgrade: require('./handler/upgrade')
+};
 
 module.exports = class Strategy {
 	constructor(interceptorOptions) {
 		const { sslConnect, request, response } = interceptorOptions;
 
-		this.ConnectHandler = Handler.Connect(sslConnect);
-		this.RequestHandler = Handler.Request(request, response);
-		this.UpgradeHandler = Handler.Upgrade();
+		this.ConnectHandler = HandlerFactory.Connect(sslConnect);
+		this.RequestHandler = HandlerFactory.Request(request, response);
+		this.UpgradeHandler = HandlerFactory.Upgrade();
 
 		this.config = {};
 	}
 
 	config(options) {
 		this.config = options;
+	}
+
+	static isStrategy(any) {
+		return any instanceof this;
 	}
 
 	static DEFAULT_SSL_CONNECT() {

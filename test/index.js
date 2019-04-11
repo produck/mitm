@@ -7,68 +7,13 @@ const axios = require('axios-https-proxy-fix');
 
 const mitm = require('..');
 const html = fs.readFileSync(path.resolve(__dirname, './test.html'));
-const rootCA = {
-	key: fs.readFileSync('/home/dameneko/node-mitmproxy/node-mitmproxy.ca.key.pem', 'utf-8'),
-	cert: fs.readFileSync('/home/dameneko/node-mitmproxy/node-mitmproxy.ca.crt', 'utf-8')
-};
-
+const rootCA = require('./test-cert.json');
 
 const testServer = http.createServer((req, res) => {
 	res.end(html);
 });
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
-// before(() => {
-// })
-
-
-
-
-// describe('emptyStrategy', function() {
-// 	let mitmServer = null;
-
-// 	this.beforeAll(function () {
-// 		testServer.listen();
-// 		const strategy = mitm.Strategy.create({});
-
-// 		mitmServer = new mitm.Server(strategy, {
-// 			ssl: {
-// 				key: rootCA.key,
-// 				cert: rootCA.cert
-// 			}
-// 		});
-// 		mitmServer.listen(6666);
-// 	});
-
-// 	this.afterAll(function () {
-// 		mitmServer.close();
-// 		testServer.close();
-// 	});
-
-// 	it('gethttp', function (done) {
-// 		request(
-// 			`http://localhost:${testServer.address().port}`,
-// 			{ proxy: 'http://localhost:6666' },
-// 			(error, response, body) => {
-// 				assert.equal(body, html);
-// 				done();
-// 			}
-// 		);
-// 	});
-
-// 	it('gethttps', function (done) {
-// 		request(
-// 			`https://www.baidu.com`,
-// 			{ proxy: 'http://localhost:6666' },
-// 			(error, response, body) => {
-// 				done();
-// 			}
-// 		);
-// 	});
-// });
-
-const httpAgent = new http.Agent({ keepAlive: true });
-const httpsAgent = new https.Agent({ keepAlive: true });
 
 describe('strategy', function () {
 	let mitmServer = null;
@@ -79,12 +24,16 @@ describe('strategy', function () {
 			sslConnect: () => true
 		});
 
-		mitmServer = new mitm.Server(strategy, {
+		mitmServer = http.createServer();
+		
+		mitm.Server.create(strategy, {
 			ssl: {
 				key: rootCA.key,
 				cert: rootCA.cert
-			}
+			},
+			server: mitmServer
 		});
+
 		mitmServer.listen(2344);
 	});
 
