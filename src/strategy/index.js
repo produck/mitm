@@ -1,5 +1,4 @@
-const HandlerFactory = {
-	Connect: require('./handler/connect'),
+const HandlerFactory = {//TODO: websocket
 	Request: require('./handler/request'),
 	Upgrade: require('./handler/upgrade')
 };
@@ -8,7 +7,8 @@ module.exports = class Strategy {
 	constructor(interceptorOptions) {
 		const { sslConnect, request, response } = interceptorOptions;
 
-		this.ConnectHandler = HandlerFactory.Connect(sslConnect);
+		this.sslConnectInterceptor = sslConnect;
+		
 		this.RequestHandler = HandlerFactory.Request(request, response);
 		this.UpgradeHandler = HandlerFactory.Upgrade();
 
@@ -27,12 +27,12 @@ module.exports = class Strategy {
 		return false;
 	}
 
-	static DEFAULT_REQUEST(ctx, forward) {
-		forward();
+	static DEFAULT_REQUEST(context) {
+		context.forward();
 	}
 
-	static DEFAULT_RESPONSE(ctx, respond) {
-		respond();
+	static DEFAULT_RESPONSE(context) {
+		context.respond();
 	}
 
 	static create({
@@ -40,7 +40,6 @@ module.exports = class Strategy {
 		request = this.DEFAULT_REQUEST,
 		response = this.DEFAULT_RESPONSE
 	}) {
-
 		return new this({ sslConnect, request, response });
 	}
 };

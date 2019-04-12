@@ -1,6 +1,5 @@
 const http = require('http');
 const https = require('https');
-const stream = require('stream');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
@@ -20,63 +19,107 @@ function mergeRequestOptions(clientRequest, connectTarget) {
 	}
 }
 
-module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(connectTarget) {
-		return async function RequestHandler(clientRequest, clientResponse) {
-			const ctx = {
-				request: {
-					options: mergeRequestOptions(clientRequest, connectTarget),
-					body: clientRequest,
-				},
-				response: {
-					statusCode: null,
-					statusMessage: null,
-					headers: null,
-					body: null
-				}
-			};
+class Context {
+	constructor(clientRequest, clientResponse, responseInterceptor, connectTarget) {
+		this.$clientRequest = clientRequest;
+		this.$clientResponse = clientResponse;
+		this.$responseInterceptor = responseInterceptor;
 
-			function respond() {
-				clientResponse.statusCode = ctx.response.statusCode;
-				clientResponse.statusMessage = ctx.response.statusMessage;
+		const $request = {
+			body: clientRequest,
+			bodyChanged: false
+		};
 
-				Object.keys(ctx.response.headers).forEach(key => {
-					clientResponse.setHeader(key, ctx.response.headers[key]);
-				});
+		const $response = this.$response =  {
+			body: null,
+			bodyChanged: false
+		};
 
-				if (ctx.response.body instanceof stream.Readable) {
-					ctx.response.body.pipe(clientResponse);
-				} else {
-					clientResponse.end(ctx.response.body);
-				}
+		this.request = {
+			options: mergeRequestOptions(clientRequest, connectTarget),
+			get body() {
+				return $request.body;
+			},
+			set body(newBody) {
+				$request.bodyChanged = true;// timing of delete header['content-length'], when expect a wrong length or a given length
+				$request.body = newBody;
+			},
+			get bodyChanged() {
+				return $request.bodyChanged;
 			}
+		};
 
-			await requestInterceptor(ctx, function forward() {
-				const isHTTPS = ctx.request.options.protocol === 'https:';
-				const proxyRequest = (isHTTPS ? https : http).request(ctx.request.options);
+		this.response = {
+			statusCode: null,
+			statusMessage: null,
+			headers: null,
+			get body() {
+				return $response.body;
+			},
+			set body(newBody) {
+				$response.bodyChanged = true;// timing of delete header['content-length'], when expect a wrong length or a given length
+				$response.body = newBody;
+			},
+			get bodyChanged() {
+				return $response.bodyChanged;
+			}
+		};
 
-				proxyRequest.on('timeout', () => { });
-				proxyRequest.on('error', error => { });
-				proxyRequest.on('aborted', () => clientRequest.abort());
-				clientRequest.on('aborted', () => proxyRequest.abort());
+		this.schema = this.request.options.protocol === 'https:' ? https : http;
+	}
 
-				proxyRequest.on('response', async proxyResponse => {
-					delete proxyResponse.headers['content-length'];
+	forward() {
+		if (this.request.bodyChanged) {
+			delete this.request.options.headers['content-length'];
+		}
 
-					ctx.response.statusCode = proxyResponse.statusCode;
-					ctx.response.statusMessage = proxyResponse.statusMessage;
-					ctx.response.headers = proxyResponse.headers;
-					ctx.response.body = proxyResponse;
+		const proxyRequest = this.schema.request(this.request.options);
 
-					await responseInterceptor(ctx, respond);
-				});
+		proxyRequest.on('timeout', () => { });
+		proxyRequest.on('error', error => { });
+		proxyRequest.on('aborted', () => this.$clientRequest.abort());
+		this.$clientRequest.on('aborted', () => proxyRequest.abort());
 
-				if (ctx.request.body instanceof stream.Readable) {
-					ctx.request.body.pipe(proxyRequest);
-				} else {
-					proxyRequest.end(ctx.request.body);
-				}
-			}, respond);
+		proxyRequest.on('response', async proxyResponse => {
+			this.response.statusCode = proxyResponse.statusCode;
+			this.response.statusMessage = proxyResponse.statusMessage;
+			this.response.headers = proxyResponse.headers;
+			this.$response.body = proxyResponse;
+
+			await this.$responseInterceptor(this);
+		});
+
+		if (this.request.body.readable) {
+			this.request.body.pipe(proxyRequest);
+		} else {
+			proxyRequest.end(this.request.body);
+		}
+	}
+
+	respond() {
+		this.$clientResponse.statusCode = this.response.statusCode;
+		this.$clientResponse.statusMessage = this.response.statusMessage;
+
+		if (this.response.bodyChanged) {
+			delete this.response.headers['content-length'];
+		}
+
+		Object.keys(this.response.headers).forEach(key => {
+			this.$clientResponse.setHeader(key, this.response.headers[key]);
+		});
+
+		if (this.response.body.readable) {
+			this.response.body.pipe(this.$clientResponse);
+		} else {
+			this.$clientResponse.end(this.response.body);
+		}
+	}
+}
+
+module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
+	return function RequestHandlerFactory(target) {
+		return async function RequestHandler(clientRequest, clientResponse) {
+			await requestInterceptor(new Context(clientRequest, clientResponse, responseInterceptor, target));
 		}
 	}
 }

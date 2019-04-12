@@ -1,32 +1,60 @@
+const net = require('net');
 const http = require('http');
 const EventEmitter = require('events');
 const Strategy = require('./strategy');
 const CertificateStore = require('./certificate');
-const ShadowStore = require('./shadow');
+const ShadowStore = require('./shadow/store');
+
+const BODY = 'HTTP/1.1 200 Connection Established\r\nProxy-agent: node-mitmproxy\r\n\r\n';
+const ORIGIN_REG = /origin:/i;
 
 module.exports = class MitmServer extends EventEmitter {
 	constructor(strategy, options) {
 		super();
 
 		const { server, certificateStore } = options;
+		const isSecure = Boolean(options.ssl);
+		const shadowStore = new ShadowStore(this/* ,options.shadow.length */);
 
 		this.options = options;
-		this.server = server;
-		this.shadowStore = new ShadowStore(this/* ,options.shadow.length */);
-
-		this.certificateStore = certificateStore;
 		this.strategy = strategy;
 
-		server.keepAliveTimeout = 0;
+		this.server = server;
+		this.certificateStore = certificateStore;
 
-		server.on('connect', strategy.ConnectHandler(this));
+		server.on('connect', async (clientRequest, socket, head) => {
+			const [hostname, port] = clientRequest.url.split(':');
+			
+			socket.write(BODY);
+
+			socket.once('data', async header => {
+				let proxySocket = null;
+
+				if (ORIGIN_REG.test(header.toString())) {
+					const address = shadowStore.fetch('http:', hostname, port).address;
+					proxySocket = net.connect(address.port, address.hostname);//
+				} else {
+					if (await strategy.sslConnectInterceptor(clientRequest, socket, head) && isSecure) {
+						const address = shadowStore.fetch('https:', hostname, port).address;
+
+						proxySocket = net.connect(address.port, address.hostname);
+					} else {
+						proxySocket = net.connect(port, hostname);
+					}
+				}
+
+				proxySocket.on('error', options.log);
+				socket.pipe(proxySocket);
+				proxySocket.pipe(socket);
+				proxySocket.write(header);
+			});
+
+			socket.on('error', options.log);
+		});
+
 		server.on('upgrade', strategy.UpgradeHandler());
 		server.on('request', strategy.RequestHandler());
-		server.on('close', () => this.shadowStore.destory());
-	}
-
-	get isSecure() {
-		return Boolean(this.options.ssl);
+		server.on('close', () => shadowStore.destory());
 	}
 
 	static create(strategy, options) {

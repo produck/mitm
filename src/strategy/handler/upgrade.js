@@ -3,9 +3,9 @@ const https = require('https');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
-function mergeRequestOptions(clientRequest, connectTarget) {
-	const url = new URL(connectTarget ?
-		`https://${connectTarget.hostname}:${connectTarget.port}${clientRequest.url}` :
+function mergeRequestOptions(clientRequest, target) {
+	const url = new URL(target ?
+		`${target.protocol}//${target.hostname}:${target.port}${clientRequest.url}` :
 		clientRequest.url);
 
 	return {
@@ -20,9 +20,9 @@ function mergeRequestOptions(clientRequest, connectTarget) {
 }
 
 module.exports = function createUpgradeHandlerFactory() {
-	return function upgradeHandlerFactory(connectTarget) {
-		return function upgradeHandler(clientRequest, clientSocket, head) {
-			const requestOptions = mergeRequestOptions(clientRequest, connectTarget);
+	return function upgradeHandlerFactory(target) {
+		return function upgradeHandler(clientRequest, socket, head) {
+			const requestOptions = mergeRequestOptions(clientRequest, target);
 
 			const isHTTPS = requestOptions.protocol === 'https:';
 			const proxyRequest = (isHTTPS ? https : http).request(requestOptions);
@@ -34,7 +34,7 @@ module.exports = function createUpgradeHandlerFactory() {
 			proxyRequest.on('response', proxyResponse => {
 				// if upgrade event isn't going to happen, close the socket
 				if (!proxyResponse.upgrade) {
-					clientSocket.end();
+					socket.end();
 				}
 			});
 
@@ -43,7 +43,7 @@ module.exports = function createUpgradeHandlerFactory() {
 					console.error(error);
 				});
 
-				clientSocket.on('error', function () {
+				socket.on('error', function () {
 					proxySocket.end();
 				});
 
@@ -54,7 +54,7 @@ module.exports = function createUpgradeHandlerFactory() {
 
 				if (proxyHead && proxyHead.length) proxySocket.unshift(proxyHead);
 
-				clientSocket.write(
+				socket.write(
 					Object.keys(proxyRes.headers).reduce(function (head, key) {
 						var value = proxyRes.headers[key];
 
@@ -71,7 +71,7 @@ module.exports = function createUpgradeHandlerFactory() {
 						.join('\r\n') + '\r\n\r\n'
 				);
 
-				proxySocket.pipe(clientSocket).pipe(proxySocket);
+				proxySocket.pipe(socket).pipe(proxySocket);
 
 			});
 			proxyRequest.end();
