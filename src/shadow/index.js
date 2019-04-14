@@ -18,10 +18,18 @@ exports.http = class HttpShadow extends Shadow {
 
 		const { strategy } = mitmServer;
 
-		server.on('upgrade', strategy.UpgradeHandler({ protocol: 'http:', hostname, port }));
+		server.on('upgrade', strategy.UpgradeHandler(this));
 		server.listen();
 
 		this.address = server.address();
+	}
+
+	get origin() {
+		return `http://${this.hostname}:${this.port}`;
+	}
+
+	get isTls() {
+		return false;
 	}
 
 	close() {
@@ -48,11 +56,19 @@ exports.https = class HttpsShadow extends Shadow {
 
 		const { strategy } = mitmServer;
 
-		server.on('upgrade', strategy.UpgradeHandler({ protocol: 'https:', hostname, port }));
-		server.on('request', strategy.RequestHandler({ protocol: 'https:', hostname, port }));
+		server.on('upgrade', strategy.UpgradeHandler(this));
+		server.on('request', strategy.RequestHandler(this));
 		server.listen();
 
 		this.address = server.address();
+	}
+
+	get origin() {
+		return `https://${this.hostname}:${this.port}`;
+	}
+
+	get isTls() {
+		return true;
 	}
 
 	close() {

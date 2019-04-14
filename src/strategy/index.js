@@ -11,12 +11,6 @@ module.exports = class Strategy {
 		
 		this.RequestHandler = HandlerFactory.Request(request, response);
 		this.UpgradeHandler = HandlerFactory.Upgrade();
-
-		this.config = {};
-	}
-
-	config(options) {
-		this.config = options;
 	}
 
 	static isStrategy(any) {
@@ -27,12 +21,12 @@ module.exports = class Strategy {
 		return false;
 	}
 
-	static DEFAULT_REQUEST(context) {
-		context.forward();
+	static DEFAULT_REQUEST(context, respond, forward) {
+		forward();
 	}
 
-	static DEFAULT_RESPONSE(context) {
-		context.respond();
+	static DEFAULT_RESPONSE(context, respond) {
+		respond();
 	}
 
 	static create({
