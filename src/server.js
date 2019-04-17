@@ -76,7 +76,7 @@ module.exports = class MitmServer extends EventEmitter {
 
 		if (options.log) {
 			if (!(options.log instanceof Function)) {
-				throw new Error('`options.log MUST be a Function`');
+				throw new Error('`options.log` MUST be a Function');
 			}
 		} else {
 			options.log = () => {};

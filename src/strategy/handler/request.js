@@ -12,21 +12,40 @@ function deleteContentLength(headers) {
 	});
 }
 
+function send(origin, target) {
+	if (origin.readable && origin.pipe && origin.pipe instanceof Function) {
+		origin.pipe(target);
+	} else {
+		target.end(origin);
+	}
+}
+
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
 	return function RequestHandlerFactory(shadow) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const context = new Context(clientRequest, shadow);
 
 			function respond() {
-				context.sendResponse(clientResponse);
+				if (context.responseBodyReplaced) {
+					deleteContentLength(context.response.headers);
+				}
+				
+				clientResponse.statusCode = context.response.statusCode;
+				clientResponse.statusMessage = context.response.statusMessage;
+		
+				Object.keys(context.response.headers).forEach(key => {
+					clientResponse.setHeader(key, context.response.headers[key]);
+				});
+
+				send(context.response.body, clientResponse);
 			}
 
 			await requestInterceptor(context, respond, function forward() {
 				if (context.requestBodyReplaced) {
-					deleteContentLength(context.request.options.headers);
+					deleteContentLength(context.request.headers);
 				}
 
-				const schemaInterface = shadow && shadow.isTls ? https : http;
+				const schemaInterface = context.request.isTls ? https : http;
 				const proxyRequest = schemaInterface.request(context.request.options);
 
 				proxyRequest.on('aborted', () => clientRequest.abort());
@@ -37,15 +56,11 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;
 
-					context.setResponse({ statusCode, statusMessage, headers, body: proxyResponse });
+					context.response.$fillEmptyContext({ statusCode, statusMessage, headers, body: proxyResponse });
 					await responseInterceptor(context, respond);
-
-					if (context.responseBodyReplaced) {
-						deleteContentLength(context.response.headers);
-					}
 				});
 
-				context.sendRequest(proxyRequest);
+				send(context.request.body, proxyRequest);
 			});
 		}
 	}
