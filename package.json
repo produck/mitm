@@ -5,7 +5,8 @@
   "main": "index.js",
   "dependencies": {
     "lru-cache": "^5.1.1",
-    "node-forge": "^0.8.2"
+    "node-forge": "^0.8.2",
+    "through2": "^3.0.1"
   },
   "devDependencies": {
     "axios-https-proxy-fix": "^0.17.1",

@@ -1,9 +1,10 @@
 const http = require('http');
 const https = require('https');
+const through = require('through2');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
-module.exports = function createUpgradeHandlerFactory() {
+module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 	return function upgradeHandlerFactory(shadow) {
 		return function upgradeHandler(clientRequest, socket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
@@ -56,10 +57,23 @@ module.exports = function createUpgradeHandlerFactory() {
 
 					return head;
 				}, ['HTTP/1.1 101 Switching Protocols']).join('\r\n') + '\r\n\r\n');
-
-				proxySocket.pipe(socket).pipe(proxySocket);
-
+				
+				if (websocketInterceptor.mode === 'all') {
+					proxySocket.pipe(through(websocketInterceptor.toClient)).pipe(socket);
+					socket.pipe(through(websocketInterceptor.toServer)).pipe(proxySocket);
+				} else if (websocketInterceptor.mode === 'toClient') {
+					proxySocket.pipe(through(websocketInterceptor.toClient)).pipe(socket);
+					socket.pipe(proxySocket);
+				} else if (websocketInterceptor.mode === 'toServer') {
+					proxySocket.pipe(socket);
+					socket.pipe(through(websocketInterceptor.toServer)).pipe(proxySocket);
+				} else if (websocketInterceptor.mode === 'disable') {
+					proxySocket.pipe(socket);
+					socket.pipe(proxySocket);
+				}
 			});
+
+
 			proxyRequest.end();
 		};
 	}
