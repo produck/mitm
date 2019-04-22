@@ -1,6 +1,6 @@
 const http = require('http');
 const https = require('https');
-const through = require('through2');
+const WebSocket = require('ws');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
@@ -9,72 +9,86 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 		return function upgradeHandler(clientRequest, socket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
 
-			const proxyRequest = (shadow.isTls ? https : http).request({
-				method: clientRequest.method,
-				protocol: target.protocol,
-				host: target.hostname,
-				port: target.port,
-				path: target.pathname + target.search,
-				headers: clientRequest.headers,
-				timeout: DEFAULT_REQUEST_TIMEOUT,
-			});
+			// if (websocketInterceptor) {
 
-			proxyRequest.on('error', (e) => {
-				console.error(e);
-			});
+			// }
 
-			proxyRequest.on('response', proxyResponse => {
-				// if upgrade event isn't going to happen, close the socket
-				if (!proxyResponse.upgrade) {
-					socket.end();
-				}
-			});
+			const wsServer = new WebSocket.Server({ noServer: true });
+			wsServer.on('connection', function connection(ws) {
+				target.protocol = target.protocol.replace('http', 'ws');
 
-			proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
-				proxySocket.on('error', (error) => {
-					console.error(error);
+				const proxyWs = new WebSocket(target);
+
+				proxyWs.on('open', function open() {
+					ws.on('message', function incoming(message) {
+						proxyWs.send(message);console.log(message);
+					});
 				});
-
-				socket.on('error', function () {
-					proxySocket.end();
-				});
-
-				proxySocket.setTimeout(0);
-				proxySocket.setNoDelay(true);
-
-				proxySocket.setKeepAlive(true, 0);
-
-				if (proxyHead && proxyHead.length) proxySocket.unshift(proxyHead);
-
-				socket.write(Object.keys(proxyResponse.headers).reduce(function (head, key) {
-					const value = proxyResponse.headers[key];
-
-					if (Array.isArray(value)) {
-						value.forEach(value => head.push(`${key}: ${value}`));
-					} else {
-						head.push(`${key}: ${value}`);
-					}
-
-					return head;
-				}, ['HTTP/1.1 101 Switching Protocols']).join('\r\n') + '\r\n\r\n');
 				
-				if (websocketInterceptor.mode === 'all') {
-					proxySocket.pipe(through(websocketInterceptor.toClient)).pipe(socket);
-					socket.pipe(through(websocketInterceptor.toServer)).pipe(proxySocket);
-				} else if (websocketInterceptor.mode === 'toClient') {
-					proxySocket.pipe(through(websocketInterceptor.toClient)).pipe(socket);
-					socket.pipe(proxySocket);
-				} else if (websocketInterceptor.mode === 'toServer') {
-					proxySocket.pipe(socket);
-					socket.pipe(through(websocketInterceptor.toServer)).pipe(proxySocket);
-				} else if (websocketInterceptor.mode === 'disable') {
-					proxySocket.pipe(socket);
-					socket.pipe(proxySocket);
-				}
+				proxyWs.on('message', function incoming(data) {
+					ws.send(data);
+				});
 			});
 
+			wsServer.handleUpgrade(clientRequest, socket, head, function done(ws) {
+				wsServer.emit('connection', ws, clientRequest);
+			});
 
-			proxyRequest.end();
+			// const proxyRequest = (shadow.isTls ? https : http).request({
+			// 	method: clientRequest.method,
+			// 	protocol: target.protocol,
+			// 	host: target.hostname,
+			// 	port: target.port,
+			// 	path: target.pathname + target.search,
+			// 	headers: clientRequest.headers,
+			// 	timeout: DEFAULT_REQUEST_TIMEOUT,
+			// });
+
+			// proxyRequest.on('error', (e) => {
+			// 	console.error(e);
+			// });
+
+			// proxyRequest.on('response', proxyResponse => {
+			// 	// if upgrade event isn't going to happen, close the socket
+			// 	if (!proxyResponse.upgrade) {
+			// 		socket.end();
+			// 	}
+			// });
+
+			// proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
+			// 	proxySocket.on('error', (error) => {
+			// 		console.error(error);
+			// 	});
+
+			// 	socket.on('error', function () {
+			// 		proxySocket.end();
+			// 	});
+
+			// 	proxySocket.setTimeout(0);
+			// 	proxySocket.setNoDelay(true);
+
+			// 	proxySocket.setKeepAlive(true, 0);
+
+			// 	if (proxyHead && proxyHead.length) proxySocket.unshift(proxyHead);
+
+			// 	socket.write(Object.keys(proxyResponse.headers).reduce(function (head, key) {
+			// 		const value = proxyResponse.headers[key];
+
+			// 		if (Array.isArray(value)) {
+			// 			value.forEach(value => head.push(`${key}: ${value}`));
+			// 		} else {
+			// 			head.push(`${key}: ${value}`);
+			// 		}
+
+			// 		return head;
+			// 	}, ['HTTP/1.1 101 Switching Protocols']).join('\r\n') + '\r\n\r\n');
+
+			// 	proxySocket.pipe(socket);
+			// 	socket.pipe(proxySocket);
+			// });
+
+
+			// proxyRequest.end();
 		};
 	}
 }

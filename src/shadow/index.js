@@ -3,45 +3,41 @@ const https = require('https');
 const tls = require('tls');
 
 class Shadow {
-	constructor(hostname, port, mitmServer) {
+	constructor(hostname, port, mitmServer, shadowServer) {
 		this.hostname = hostname;
 		this.port = port;
 		this.mitmServer = mitmServer;
+		this.$server = shadowServer;
+		this.address = null;
+		this.isTls = shadowServer instanceof https.Server;
+
+		this.$server.on('upgrade', mitmServer.strategy.UpgradeHandler(this));
+	}
+
+	get origin() {
+		return `${this.isTls ? 'https' : 'http'}://${this.hostname}:${this.port}`;
+	}
+
+	init() {
+		this.$server.listen();
+		this.address = this.$server.address();
+	}
+	
+	close() {
+		this.$server.close();
 	}
 }
 
 exports.http = class HttpShadow extends Shadow {
 	constructor(hostname, port, mitmServer) {
-		super(hostname, port, mitmServer);
-
-		const server = this.$server = http.createServer();
-
-		const { strategy } = mitmServer;
-
-		server.on('upgrade', strategy.UpgradeHandler(this));
-		server.listen();
-
-		this.address = server.address();
-	}
-
-	get origin() {
-		return `http://${this.hostname}:${this.port}`;
-	}
-
-	get isTls() {
-		return false;
-	}
-
-	close() {
-		this.$server.close();
+		super(hostname, port, mitmServer, http.createServer());
+		this.init();
 	}
 };
 
 exports.https = class HttpsShadow extends Shadow {
 	constructor(hostname, port, mitmServer, certKeyPair) {
-		super(hostname, port, mitmServer);
-
-		const server = this.$server = https.createServer({
+		super(hostname, port, mitmServer, https.createServer({
 			key: certKeyPair.privateKey,
 			cert: certKeyPair.certificate,
 			SNICallback(hostname, cb) {
@@ -52,26 +48,9 @@ exports.https = class HttpsShadow extends Shadow {
 					cert: certKeyPair.certificate
 				}));
 			}
-		});
+		}));
 
-		const { strategy } = mitmServer;
-
-		server.on('upgrade', strategy.UpgradeHandler(this));
-		server.on('request', strategy.RequestHandler(this));
-		server.listen();
-
-		this.address = server.address();
-	}
-
-	get origin() {
-		return `https://${this.hostname}:${this.port}`;
-	}
-
-	get isTls() {
-		return true;
-	}
-
-	close() {
-		this.$server.close();
+		this.$server.on('request', mitmServer.strategy.RequestHandler(this));
+		this.init();
 	}
 };

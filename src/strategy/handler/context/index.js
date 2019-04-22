@@ -15,6 +15,10 @@ exports.Interface = function ContextInterface(raw) {
 function Options(requestRaw) {
 	const { url } = requestRaw;
 
+	// if (requestRaw.method === 'OPTIONS') {
+	// 	debugger;
+	// }
+
 	return {
 		protocol: url.protocol,
 		host: url.host,
