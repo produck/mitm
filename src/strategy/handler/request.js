@@ -1,5 +1,3 @@
-const http = require('http');
-const https = require('https');
 const Context = require('./context');
 
 const CONTENT_LENGTH_REGEXP = /content-length/i;
@@ -21,32 +19,32 @@ function send(origin, target) {
 }
 
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(shadow) {
+	return function RequestHandlerFactory(shadow = null) {
 		return async function RequestHandler(clientRequest, clientResponse) {
-			const context = new Context(clientRequest, shadow);
+			const raw = Context.Raw(clientRequest, shadow);
+			const contextInterface = Context.Interface(raw);
 
 			function respond() {
-				if (context.responseBodyReplaced) {
-					deleteContentLength(context.response.headers);
+				if (raw.response.payload.changed) {
+					deleteContentLength(raw.response.headers);
 				}
 				
-				clientResponse.statusCode = context.response.statusCode;
-				clientResponse.statusMessage = context.response.statusMessage;
+				clientResponse.statusCode = raw.response.statusCode;
+				clientResponse.statusMessage = raw.response.statusMessage;
 		
-				Object.keys(context.response.headers).forEach(key => {
-					clientResponse.setHeader(key, context.response.headers[key]);
+				Object.keys(raw.response.headers).forEach(key => {
+					clientResponse.setHeader(key, raw.response.headers[key]);
 				});
 
-				send(context.response.body, clientResponse);
+				send(raw.response.payload.body, clientResponse);
 			}
 
-			await requestInterceptor(context, respond, function forward() {
-				if (context.requestBodyReplaced) {
-					deleteContentLength(context.request.headers);
+			await requestInterceptor(contextInterface, respond, function forward() {
+				if (raw.request.payload.changed) {
+					deleteContentLength(raw.request.headers);
 				}
 
-				const schemaInterface = context.request.isTls ? https : http;
-				const proxyRequest = schemaInterface.request(context.request.options);
+				const proxyRequest = Context.ForwardRequest(raw);
 
 				proxyRequest.on('aborted', () => clientRequest.abort());
 				clientRequest.on('aborted', () => proxyRequest.abort());
@@ -56,11 +54,15 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;
 
-					context.response.$fillEmptyContext({ statusCode, statusMessage, headers, body: proxyResponse });
-					await responseInterceptor(context, respond);
+					raw.response.statusCode = statusCode;
+					raw.response.statusMessage = statusMessage;
+					raw.response.headers = headers;
+					raw.response.payload.body = proxyResponse;
+
+					await responseInterceptor(contextInterface, respond);
 				});
 
-				send(context.request.body, proxyRequest);
+				send(raw.request.payload.body, proxyRequest);
 			});
 		}
 	}
