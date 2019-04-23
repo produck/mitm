@@ -1,4 +1,4 @@
-const HandlerFactory = {//TODO: websocket
+const HandlerFactory = {
 	Request: require('./handler/request'),
 	Upgrade: require('./handler/upgrade')
 };
@@ -21,12 +21,9 @@ module.exports = class Strategy {
 		return false;
 	}
 
-	static DEFAULT_WEBSOCKET_TO_CLIENT(chunk, encoding, callback) {
-		callback(null, chunk);
-	}
-
-	static DEFAULT_WEBSOCKET_TO_SERVER(chunk, encoding, callback) {
-		callback(null, chunk);
+	static DEFAULT_WEBSOCKET(clientWebsocket, proxyWebsocket) {
+		clientWebsocket.pipe(proxyWebsocket);
+		proxyWebsocket.pipe(clientWebsocket);
 	}
 
 	static DEFAULT_REQUEST(context, respond, forward) {
@@ -39,7 +36,7 @@ module.exports = class Strategy {
 
 	static create({
 		sslConnect = this.DEFAULT_SSL_CONNECT,
-		websocket = { mode: 'all', toClient: this.DEFAULT_WEBSOCKET_TO_CLIENT, toServer: this.DEFAULT_WEBSOCKET_TO_SERVER },
+		websocket = this.DEFAULT_WEBSOCKET,
 		request = this.DEFAULT_REQUEST,
 		response = this.DEFAULT_RESPONSE
 	}) {

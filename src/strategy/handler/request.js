@@ -53,10 +53,6 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.on('error', error => { });
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;
-					console.log(raw.request.method);
-					if (raw.request.method === 'OPTIONS' && statusCode === 405) {
-						debugger;
-					}
 
 					raw.response.statusCode = statusCode;
 					raw.response.statusMessage = statusMessage;

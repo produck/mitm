@@ -1,94 +1,66 @@
 const http = require('http');
 const https = require('https');
-const WebSocket = require('ws');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
 module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 	return function upgradeHandlerFactory(shadow) {
-		return function upgradeHandler(clientRequest, socket, head) {
+		return function upgradeHandler(clientRequest, clientSocket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
 
-			// if (websocketInterceptor) {
-
-			// }
-
-			const wsServer = new WebSocket.Server({ noServer: true });
-			wsServer.on('connection', function connection(ws) {
-				target.protocol = target.protocol.replace('http', 'ws');
-
-				const proxyWs = new WebSocket(target);
-
-				proxyWs.on('open', function open() {
-					ws.on('message', function incoming(message) {
-						proxyWs.send(message);console.log(message);
-					});
-				});
-				
-				proxyWs.on('message', function incoming(data) {
-					ws.send(data);
-				});
+			const proxyRequest = (shadow.isTls ? https : http).request({
+				method: clientRequest.method,
+				protocol: target.protocol,
+				host: target.hostname,
+				port: target.port,
+				path: target.pathname + target.search,
+				headers: clientRequest.headers,
+				timeout: DEFAULT_REQUEST_TIMEOUT,
 			});
 
-			wsServer.handleUpgrade(clientRequest, socket, head, function done(ws) {
-				wsServer.emit('connection', ws, clientRequest);
+			proxyRequest.on('error', (e) => {
+				console.error(e);
 			});
 
-			// const proxyRequest = (shadow.isTls ? https : http).request({
-			// 	method: clientRequest.method,
-			// 	protocol: target.protocol,
-			// 	host: target.hostname,
-			// 	port: target.port,
-			// 	path: target.pathname + target.search,
-			// 	headers: clientRequest.headers,
-			// 	timeout: DEFAULT_REQUEST_TIMEOUT,
-			// });
+			proxyRequest.on('response', proxyResponse => {
+				// if upgrade event isn't going to happen, close the socket
+				if (!proxyResponse.upgrade) {
+					clientSocket.end();
+				}
+			});
 
-			// proxyRequest.on('error', (e) => {
-			// 	console.error(e);
-			// });
+			proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
+				proxySocket.on('error', (error) => {
+					console.error(error);
+				});
 
-			// proxyRequest.on('response', proxyResponse => {
-			// 	// if upgrade event isn't going to happen, close the socket
-			// 	if (!proxyResponse.upgrade) {
-			// 		socket.end();
-			// 	}
-			// });
+				clientSocket.on('error', function () {
+					proxySocket.end();
+				});
 
-			// proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
-			// 	proxySocket.on('error', (error) => {
-			// 		console.error(error);
-			// 	});
+				proxySocket.setTimeout(0);
+				proxySocket.setNoDelay(true);
 
-			// 	socket.on('error', function () {
-			// 		proxySocket.end();
-			// 	});
+				proxySocket.setKeepAlive(true, 0);
 
-			// 	proxySocket.setTimeout(0);
-			// 	proxySocket.setNoDelay(true);
+				if (proxyHead && proxyHead.length) proxySocket.unshift(proxyHead);
 
-			// 	proxySocket.setKeepAlive(true, 0);
+				clientSocket.write(Object.keys(proxyResponse.headers).reduce(function (head, key) {
+					const value = proxyResponse.headers[key];
 
-			// 	if (proxyHead && proxyHead.length) proxySocket.unshift(proxyHead);
+					if (Array.isArray(value)) {
+						value.forEach(value => head.push(`${key}: ${value}`));
+					} else {
+						head.push(`${key}: ${value}`);
+					}
 
-			// 	socket.write(Object.keys(proxyResponse.headers).reduce(function (head, key) {
-			// 		const value = proxyResponse.headers[key];
+					return head;
+				}, ['HTTP/1.1 101 Switching Protocols']).join('\r\n') + '\r\n\r\n');
 
-			// 		if (Array.isArray(value)) {
-			// 			value.forEach(value => head.push(`${key}: ${value}`));
-			// 		} else {
-			// 			head.push(`${key}: ${value}`);
-			// 		}
+				websocketInterceptor(clientSocket, proxySocket);
+			});
 
-			// 		return head;
-			// 	}, ['HTTP/1.1 101 Switching Protocols']).join('\r\n') + '\r\n\r\n');
-
-			// 	proxySocket.pipe(socket);
-			// 	socket.pipe(proxySocket);
-			// });
-
-
-			// proxyRequest.end();
+			proxyRequest.end();
 		};
 	}
 }
