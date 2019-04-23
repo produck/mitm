@@ -21,9 +21,9 @@ module.exports = class Strategy {
 		return false;
 	}
 
-	static DEFAULT_WEBSOCKET(clientWebsocket, proxyWebsocket) {
-		clientWebsocket.pipe(proxyWebsocket);
-		proxyWebsocket.pipe(clientWebsocket);
+	static DEFAULT_WEBSOCKET(clientSocket, proxySocket) {
+		clientSocket.pipe(proxySocket);
+		proxySocket.pipe(clientSocket);
 	}
 
 	static DEFAULT_REQUEST(context, respond, forward) {

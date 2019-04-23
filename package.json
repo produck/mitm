@@ -1,14 +1,13 @@
 {
   "name": "@lemonce3/mitm",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "HTTP/HTTPS man in the middle proxy server",
   "main": "index.js",
   "dependencies": {
     "lodash": "^4.17.11",
     "lru-cache": "^5.1.1",
     "methods": "^1.1.2",
-    "node-forge": "^0.8.2",
-    "ws": "^6.2.1"
+    "node-forge": "^0.8.2"
   },
   "devDependencies": {
     "axios-https-proxy-fix": "^0.17.1",
