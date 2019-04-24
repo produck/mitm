@@ -31,7 +31,7 @@ exports.Interface = function ContextResponseInterface(responseRaw) {
 				return responseRaw.headers = any;
 			}
 
-			throw new Error('`headers` MUST be a plainObject.')
+			throw new Error('`headers` MUST be a plainObject.');
 		},
 		get body() {
 			return responseRaw.payload.body;

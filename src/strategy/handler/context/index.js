@@ -13,21 +13,15 @@ exports.Interface = function ContextInterface(raw) {
 };
 
 function Options(requestRaw) {
-	const { url } = requestRaw;
-
 	return {
 		method: requestRaw.method,
-		protocol: url.protocol,
-		host: url.host,
-		port: url.port,
-		path: url.pathname + url.search,
 		headers: requestRaw.headers,
 		timeout: requestRaw.timeout
 	};
 }
 
 exports.ForwardRequest = function request(raw) {
-	return (raw.request.url.protocol === 'http:' ? http : https).request(Options(raw.request));
+	return (raw.request.url.protocol === 'http:' ? http : https).request(raw.request.url, Options(raw.request));
 };
 
 exports.Raw = function Raw(clientRequest, shadow) {

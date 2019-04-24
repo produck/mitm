@@ -9,13 +9,13 @@ class Shadow {
 		this.mitmServer = mitmServer;
 		this.$server = shadowServer;
 		this.address = null;
-		this.isTls = shadowServer instanceof https.Server;
+		this.isSecure = shadowServer instanceof https.Server;
 
 		this.$server.on('upgrade', mitmServer.strategy.UpgradeHandler(this));
 	}
 
 	get origin() {
-		return `${this.isTls ? 'https' : 'http'}://${this.hostname}:${this.port}`;
+		return `${this.isSecure ? 'https' : 'http'}://${this.hostname}:${this.port}`;
 	}
 
 	init() {

@@ -8,12 +8,8 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 		return function upgradeHandler(clientRequest, clientSocket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
 
-			const proxyRequest = (shadow.isTls ? https : http).request({
+			const proxyRequest = (shadow.isSecure ? https : http).request(target, {
 				method: clientRequest.method,
-				protocol: target.protocol,
-				host: target.hostname,
-				port: target.port,
-				path: target.pathname + target.search,
 				headers: clientRequest.headers,
 				timeout: DEFAULT_REQUEST_TIMEOUT,
 			});
