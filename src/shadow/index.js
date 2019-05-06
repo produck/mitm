@@ -1,5 +1,6 @@
 const http = require('http');
 const https = require('https');
+const path = require('path');
 const tls = require('tls');
 
 class Shadow {
@@ -9,7 +10,6 @@ class Shadow {
 		this.mitmServer = mitmServer;
 		this.$server = shadowServer;
 		this.address = null;
-		this.isSecure = shadowServer instanceof https.Server;
 
 		this.$server.on('upgrade', mitmServer.strategy.UpgradeHandler(this));
 	}
@@ -19,7 +19,7 @@ class Shadow {
 	}
 
 	init() {
-		this.$server.listen();
+		this.$server.listen(this.socketPath);
 		this.address = this.$server.address();
 	}
 	
@@ -31,6 +31,8 @@ class Shadow {
 exports.http = class HttpShadow extends Shadow {
 	constructor(hostname, port, mitmServer) {
 		super(hostname, port, mitmServer, http.createServer());
+		this.isSecure = false;
+		this.socketPath = mitmServer.socketFile.getSocketPath('http:', hostname, port);
 		this.init();
 	}
 };
@@ -49,6 +51,9 @@ exports.https = class HttpsShadow extends Shadow {
 				}));
 			}
 		}));
+
+		this.isSecure = true;
+		this.socketPath = mitmServer.socketFile.getSocketPath('https:', hostname, port);
 
 		this.$server.on('request', mitmServer.strategy.RequestHandler(this));
 		this.init();
