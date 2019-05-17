@@ -1,17 +1,9 @@
-const http = require('http');
-const https = require('https');
-const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const axios = require('axios-https-proxy-fix');
 
 const mitm = require('..');
-const html = fs.readFileSync(path.resolve(__dirname, './test.html'));
 const rootCA = require('./test-cert.json');
-
-const testServer = http.createServer((req, res) => {
-	res.end(html);
-});
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
@@ -19,19 +11,28 @@ describe('strategy', function () {
 	let mitmServer = null;
 
 	this.beforeAll(function () {
-		testServer.listen();
 		const strategy = mitm.Strategy.create({
-			sslConnect: () => true
+			sslConnect: () => true,
+			request(context, respond, forward) {
+				context.response.body = 'ok';
+				context.response.headers = {};
+				context.response.statusCode = 200;
+				respond();
+			}
 		});
 
-		mitmServer = http.createServer();
-		
-		mitm.Server.create(strategy, {
+		mitmServer = mitm.createServer({
+			strategy,
+			socket: {
+				path: path.resolve(__dirname, './socketStore'),
+				getName(protocol, hostname, port) {
+					return `${protocol}-${hostname}-${port}`;
+				}
+			},
 			ssl: {
 				key: rootCA.key,
 				cert: rootCA.cert
-			},
-			server: mitmServer
+			}
 		});
 
 		mitmServer.listen(2344);
@@ -39,23 +40,22 @@ describe('strategy', function () {
 
 	this.afterAll(function () {
 		mitmServer.close();
-		testServer.close();
 	});
 
 	it('gethttp', async function () {
-		const url = 'http://cms-bucket.ws.126.net/2019/03/21/05c55219e96b4c60931ad9613cefee96.jpeg?imageView&thumbnail=185y116&quality=85';
+		const url = 'http://www.oid-info.com/get/1.3.6.1.4.1.4203';
 		const responseA = await axios.get(url, {
 			proxy: {
 				host: 'localhost',
 				port: 2344
 			},
-			responseType: 'arraybuffer'
+			responseType: 'text'
 		});
 
 		const responseB = await axios.get(url, {
-			responseType: 'arraybuffer'
+			responseType: 'text'
 		});
-		assert.deepEqual(responseA.data, responseB.data);
+		assert.deepEqual(responseA.data, 'ok');
 	})
 
 	it('gethttps', async function () {
@@ -66,13 +66,13 @@ describe('strategy', function () {
 				host: 'localhost',
 				port: 2344
 			},
-			responseType: 'arraybuffer',
+			responseType: 'text',
 			// httpAgent,
 			// httpsAgent
 		});
 		const responseB = await axios.get(url, {
-			responseType: 'arraybuffer'
+			responseType: 'text'
 		});
-		assert.deepEqual(responseA.data, responseB.data);
+		assert.deepEqual(responseA.data, 'ok');
 	});
 });

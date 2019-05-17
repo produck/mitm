@@ -1,6 +1,5 @@
 const http = require('http');
 const https = require('https');
-const _ = require('lodash');
 const utils = require('./utils');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
@@ -12,7 +11,7 @@ function contextRequest(requestRaw) {
 		},
 
 		set method(any) {
-			if (_.isString(any)) {
+			if (typeof any !== 'string') {
 				throw new Error('`request.method` MUST be a string.');
 			}
 
@@ -36,7 +35,7 @@ function contextRequest(requestRaw) {
 		},
 
 		set headers(any) {
-			if (_.isPlainObject(any)) {
+			if (typeof any === 'object') {
 				return requestRaw.headers = any;
 			}
 
@@ -59,7 +58,7 @@ function contextRequest(requestRaw) {
 		},
 
 		set timeout(any) {
-			if (_.isNumber(any)) {
+			if (typeof any === 'number') {
 				return requestRaw.timeout = Number(any);
 			}
 
@@ -75,7 +74,7 @@ function contextResponse(responseRaw) {
 		},
 
 		set statusCode(any) {
-			if(_.isNumber(any)) {
+			if(typeof any === 'number') {
 				return responseRaw.statusCode = any;
 			}
 		},
@@ -85,7 +84,7 @@ function contextResponse(responseRaw) {
 		},
 
 		set statusMessage(any) {
-			if (_.isString(any)) {
+			if (typeof any === 'string') {
 				return responseRaw.statusMessage = any;
 			}
 			
@@ -97,7 +96,7 @@ function contextResponse(responseRaw) {
 		},
 
 		set headers(any) {
-			if (_.isPlainObject(any)) {
+			if (typeof any === 'object') {
 				return responseRaw.headers = any;
 			}
 

@@ -1,22 +1,14 @@
 const Shadow = require('.');
-const lruCache = require('lru-cache');
-
-const DEFAULT_LENGTH = 100;
 
 module.exports = class ShadowStore {
-	constructor(mitmServer, length = DEFAULT_LENGTH) {
+	constructor(mitmServer) {
 		this.mitmServer = mitmServer;
-		this.cache = new lruCache({
-			max: length,
-			dispose(_, shadow) {
-				shadow.close();
-			}
-		});
+		this.cache = {};
 	}
 
 	fetch(protocol, hostname, port) {
 		const shadowName = `${protocol}//${hostname}:${port}`;
-		const existed = this.cache.get(shadowName);
+		const existed = this.cache[shadowName];
 
 		if (existed) {
 			return existed;
@@ -33,12 +25,12 @@ module.exports = class ShadowStore {
 			shadow = new Shadow.http(hostname, port, this.mitmServer);
 		}
 
-		this.cache.set(shadowName, shadow);
+		this.cache[shadowName] = shadow;
 
 		return shadow;
 	}
 
 	destory() {
-		this.cache.reset();
+		this.cache = {};
 	}
 }

@@ -1,6 +1,5 @@
 const stream = require('stream');
 const methods = require('methods');
-const _ = require('lodash');
 
 exports.isReadable = function isReadable(object) {
 	return object instanceof stream.Stream ||
