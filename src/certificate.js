@@ -69,15 +69,14 @@ function generateCertsForHostname(hostname, rootCA) {
 
 
 module.exports = class CertificateStore extends EventEmitter {
-  constructor(caCert, caKey, initData = {}) {
-    super();
-
-    this.cache = initData;
+  constructor(caCert, caKey, store) {
+    super(); 
     this.ca = { cert: caCert, key: caKey };
+    this.store = store;
   }
 
-  fetch(hostname) {
-    const existed = this.cache[hostname];
+  async fetch(hostname) {
+    const existed = await this.store.get(hostname);
 
     if (existed) {
       return existed;
@@ -86,11 +85,9 @@ module.exports = class CertificateStore extends EventEmitter {
 
       this.emit('signed', { hostname, newCertKeyPair });
 
-      return this.cache[hostname] = newCertKeyPair;
-    }
-  }
+      await this.store.set(hostname, newCertKeyPair); 
 
-  static isCertificateStore(any) {
-    return any instanceof this;
+      return this.store.get(hostname);
+    }
   }
 }

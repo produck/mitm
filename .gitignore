@@ -63,3 +63,4 @@ typings/
 /.vscode
 /cert
 dev-debug.js
+test

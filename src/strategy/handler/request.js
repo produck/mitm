@@ -19,7 +19,7 @@ function send(origin, target) {
 }
 
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(shadow) {
+	return function RequestHandlerFactory(shadow, mitmServer) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const raw = Context.Raw(clientRequest, shadow);
 			const contextInterface = Context.Interface(raw);
@@ -28,10 +28,10 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				if (raw.response.payload.changed) {
 					deleteContentLength(raw.response.headers);
 				}
-				
+
 				clientResponse.statusCode = raw.response.statusCode;
 				clientResponse.statusMessage = raw.response.statusMessage;
-		
+
 				Object.keys(raw.response.headers).forEach(key => {
 					clientResponse.setHeader(key, raw.response.headers[key]);
 				});
@@ -50,7 +50,9 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				clientRequest.on('aborted', () => proxyRequest.abort());
 
 				proxyRequest.on('timeout', () => { });
-				proxyRequest.on('error', error => { });
+				proxyRequest.on('error', error => {
+					mitmServer.emit('error:connetction', error);
+				});
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;
 

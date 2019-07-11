@@ -7,7 +7,7 @@ const rootCA = require('./test-cert.json');
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 
-describe('strategy', function () {
+describe.skip('strategy', function () {
 	let mitmServer = null;
 
 	this.beforeAll(function () {

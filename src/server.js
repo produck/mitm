@@ -1,26 +1,25 @@
 const net = require('net');
-const fs = require('fs');
 const path = require('path');
 const platform = require('os').platform();
 
 const Strategy = require('./strategy');
-const ShadowStore = require('./shadow/store');
+const ShadowStore = require('./shadow');
 const CertificateStore = require('./certificate');
 
 const EOL = '\r\n';
 const BODY = 'HTTP/1.1 200 Connection Established\r\nProxy-agent: node-mitmproxy\r\n\r\n';
 const ORIGIN_REG = /origin:/i;
 
+const normalize = require('./normalize');
+
 function isPlainText(message) {
 	return ORIGIN_REG.test(message);
 }
 
-function connectShadow(shadowStore, protocol, hostname, port) {
-	const address = shadowStore.fetch(protocol, hostname, port).address;
-	
-	return net.connect(address).on('error', (e) => {
+function connectShadow(address) {
+	return net.connect(address).on('error', e => {
 		console.log(e);
-	});
+	})
 }
 
 function send(origin, target, header) {
@@ -37,20 +36,18 @@ class MitmServer extends net.Server {
 		if (!(this instanceof MitmServer)) {
 			return new MitmServer();
 		}
+		const { strategyOptions, socket, certificate } = normalize(options);
 
-		const { strategy, socket, certificateStore, ssl } = options;
-
-		this.strategy = strategy;
+		this.strategy = new Strategy(strategyOptions);
 		this.socket = socket;
-		this.certificateStore = certificateStore;
+		this.certificate = new CertificateStore(certificate.cert, certificate.key, certificate.store);
 
-		const isSecure = Boolean(ssl);
-		const shadowStore = new ShadowStore(this);
+		const isSecure = Boolean(certificate.key);
 
 		this.on('connection', socket => {
 			socket.on('error', (e) => {
-				console.log(e);
-			}).once('data', chunk => {
+				this.emit('error:connection', e)
+			}).once('data',async chunk => {
 				const [method, url] = chunk.toString().split(EOL)[0].split(' ');
 				
 				if (method === 'CONNECT') {
@@ -61,9 +58,10 @@ class MitmServer extends net.Server {
 						const [hostname, port] = url.split(':');
 
 						if (isPlainText(chunk.toString())) {
-							proxySocket = connectShadow(shadowStore, 'http:', hostname, port);
-						} else if (await strategy.sslConnectInterceptor(socket, chunk) && isSecure) {
-							proxySocket = connectShadow(shadowStore, 'https:', hostname, port);
+							
+							proxySocket = connectShadow(await ShadowStore(this).fetch('http:', hostname, port).address);
+						} else if (await this.strategy.sslConnectInterceptor(socket, chunk) && isSecure) {
+							proxySocket = connectShadow(await ShadowStore(this).fetch('https:', hostname, port).address);
 						} else {
 							proxySocket = net.connect(port, hostname);
 						}
@@ -72,14 +70,13 @@ class MitmServer extends net.Server {
 					});
 				} else {
 					const {hostname, port} = new URL(url);
-					const proxySocket = connectShadow(shadowStore, 'http:', hostname, port);
+					const { address } = await ShadowStore(this).fetch('http:', hostname, port);
+					const proxySocket = connectShadow(address);
 
 					send(socket, proxySocket, chunk);
 				}
 			});
-		}).on('error', (e) => {
-			console.log(e);
-		}).on('close', () => shadowStore.destory());
+		});
 	}
 
 	getSocketPath(protocol, hostname, port) {
@@ -92,47 +89,7 @@ class MitmServer extends net.Server {
 exports.MitmServer = MitmServer;
 
 exports.createServer =  function createServer(options) {
-	const { strategy, socket, certificateStore, ssl} = options;
+	const normalizedOptions = normalize(options);
 
-	if (!Strategy.isStrategy(strategy)) {
-		throw new Error('A strategy instant MUST be provided.');
-	}
-
-	if (!socket) {
-		throw new Error('socket MUST be provided.');
-	}
-
-	if (typeof socket.path !== 'string' || typeof socket.getName !== 'function') {
-		throw new Error('socket.path MUST be a string and socket.getName MUST be a function.');
-	}
-
-	if (ssl) {
-		if (!certificateStore) {
-			options.certificateStore = new CertificateStore(ssl.cert, ssl.key);
-		} else if (!CertificateStore.isCertificateStore(certificateStore)) {
-			throw new Error('`certificateStore` MUST be a CertificateStore.');
-		}
-	}
-
-	try {
-		fs.accessSync(socket.path, fs.constants.R_OK && fs.constants.W_OK);
-	} catch (error) {
-		if (error.code === 'ENOENT') {
-			try {
-				fs.mkdirSync(socket.path, { recursive: true });
-			} catch (error) {
-				throw new Error('create `socketFile.path` failed.');
-			}
-		} else {
-			throw new Error('`socketFile.path` MUST can read and write.');
-		}
-	}
-
-	fs.readdirSync(socket.path).forEach(file => {
-		const filePath = path.join(socket.path, file);
-
-		fs.statSync(filePath).isDirectory() ? null : fs.unlinkSync(filePath);
-	});
-
-	return new MitmServer(options);
+	return new MitmServer(normalizedOptions);
 }

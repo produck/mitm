@@ -4,7 +4,7 @@ const https = require('https');
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
 module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
-	return function upgradeHandlerFactory(shadow) {
+	return function upgradeHandlerFactory(shadow, mitmServer) {
 		return function upgradeHandler(clientRequest, clientSocket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
 
@@ -15,7 +15,7 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 			});
 
 			proxyRequest.on('error', (e) => {
-				console.error(e);
+				mitmServer.emit('error:connect', e);
 			});
 
 			proxyRequest.on('response', proxyResponse => {
@@ -27,7 +27,7 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 
 			proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
 				proxySocket.on('error', (error) => {
-					console.error(error);
+					mitmServer.emit('error:upgrade', error);
 				});
 
 				clientSocket.on('error', function () {
