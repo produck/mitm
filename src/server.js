@@ -58,10 +58,11 @@ class MitmServer extends net.Server {
 						const [hostname, port] = url.split(':');
 
 						if (isPlainText(chunk.toString())) {
-							
-							proxySocket = connectShadow(await ShadowStore(this).fetch('http:', hostname, port).address);
+							const { address } = await ShadowStore(this).fetch('http:', hostname, port);
+							proxySocket = connectShadow(address);
 						} else if (await this.strategy.sslConnectInterceptor(socket, chunk) && isSecure) {
-							proxySocket = connectShadow(await ShadowStore(this).fetch('https:', hostname, port).address);
+							const { address } = await ShadowStore(this).fetch('https:', hostname, port);
+							proxySocket = connectShadow(address);
 						} else {
 							proxySocket = net.connect(port, hostname);
 						}

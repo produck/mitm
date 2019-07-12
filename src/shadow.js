@@ -46,13 +46,11 @@ module.exports = function (mitmServer) {
 
 			let shadow = null;
 
-			if (protocol === 'https') {
+			if (protocol === 'https:') {
 				shadow = new Shadow(hostname, port, https.createServer({
 					key: certKeyPair.privateKey,
 					cert: certKeyPair.certificate,
 					SNICallback(hostname, cb) {
-						const certKeyPair = mitmServer.certificate.store.fetch(hostname);
-
 						cb(null, tls.createSecureContext({
 							key: certKeyPair.privateKey,
 							cert: certKeyPair.certificate

@@ -87,7 +87,7 @@ module.exports = class CertificateStore extends EventEmitter {
 
       await this.store.set(hostname, newCertKeyPair); 
 
-      return this.store.get(hostname);
+      return await this.store.get(hostname);
     }
   }
 }
