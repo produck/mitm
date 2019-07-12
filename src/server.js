@@ -40,7 +40,7 @@ class MitmServer extends net.Server {
 
 		this.strategy = new Strategy(strategyOptions);
 		this.socket = socket;
-		this.certificate = new CertificateStore(certificate.cert, certificate.key, certificate.store);
+		this.certificate = new CertificateStore(certificate);
 
 		const isSecure = Boolean(certificate.key);
 

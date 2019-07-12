@@ -69,10 +69,10 @@ function generateCertsForHostname(hostname, rootCA) {
 
 
 module.exports = class CertificateStore extends EventEmitter {
-  constructor(caCert, caKey, store) {
+  constructor(options) {
     super(); 
-    this.ca = { cert: caCert, key: caKey };
-    this.store = store;
+    this.ca = { cert: options.cert, key: options.key };
+    this.store = options.store;
   }
 
   async fetch(hostname) {
