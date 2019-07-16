@@ -57,7 +57,6 @@ function generateCertsForHostname(hostname, rootCA) {
 
   cert.setSubject(attrs);
   cert.setExtensions(extensions);
-
   cert.sign(caKey, forge.md.sha256.create());
 
   return {
@@ -70,7 +69,8 @@ function generateCertsForHostname(hostname, rootCA) {
 
 module.exports = class CertificateStore extends EventEmitter {
   constructor(options) {
-    super(); 
+    super();
+
     this.ca = { cert: options.cert, key: options.key };
     this.store = options.store;
   }
@@ -84,7 +84,6 @@ module.exports = class CertificateStore extends EventEmitter {
       const newCertKeyPair = generateCertsForHostname(hostname, this.ca);
 
       this.emit('signed', { hostname, newCertKeyPair });
-
       await this.store.set(hostname, newCertKeyPair); 
 
       return await this.store.get(hostname);

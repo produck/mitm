@@ -3,7 +3,7 @@ const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 	return function upgradeHandlerFactory(shadow, onError) {
 		return function upgradeHandler(clientRequest, clientSocket, head) {
-			const target = new URL(clientRequest.url, shadow.origin());
+			const target = new URL(clientRequest.url, shadow.origin);
 
 			const proxyRequest = shadow.request({
 				url: target,

@@ -1,6 +1,17 @@
-const utils = require('./utils');
+const stream = require('stream');
+const http = require('http');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
+
+function isValidMethod(type) {
+	return http.METHODS.indexOf(type) !== -1;
+}
+
+function isReadable(object) {
+	return object instanceof stream.Stream ||
+		typeof object.pipe === 'function' &&
+		typeof object.readable === 'boolean';
+}
 
 function contextRequest(requestRaw) {
 	return {
@@ -13,7 +24,7 @@ function contextRequest(requestRaw) {
 				throw new Error('`request.method` MUST be a string.');
 			}
 
-			if (!utils.isValidMethod(any)) {
+			if (!isValidMethod(any)) {
 				throw new Error('Invalid method string.');
 			}
 
@@ -48,7 +59,7 @@ function contextRequest(requestRaw) {
 			requestRaw.payload.changed = true;
 
 			return requestRaw.payload.body = 
-				utils.isReadable(any) ? any : Buffer.from(any);
+				isReadable(any) ? any : Buffer.from(any);
 		},
 
 		get timeout() {
@@ -109,7 +120,7 @@ function contextResponse(responseRaw) {
 			responseRaw.payload.changed = true;
 
 			return responseRaw.payload.body = 
-				utils.isReadable(any) ? any : Buffer.from(any);
+				isReadable(any) ? any : Buffer.from(any);
 		}
 	}
 }
@@ -124,7 +135,7 @@ exports.Interface = function ContextInterface(raw) {
 exports.Raw = function Raw(clientRequest, shadow) {
 	return {
 		request: {
-			url: new URL(clientRequest.url, shadow.origin()),
+			url: new URL(clientRequest.url, shadow.origin),
 			method: clientRequest.method,
 			headers: clientRequest.headers,
 			payload: {

@@ -7,80 +7,62 @@ const path = require('path');
 
 exports.Store = function (options) {
 	const store = {};
-
 	const { strategy, socket, certificate, onError } = options;
+	const Server = {
+		http() {
+			return http.createServer();
+		},
+		async https(hostname) {
+			const certKeyPair = await certificate.fetch(hostname);
 
-	function Shadow(hostname, port, protocol, shadowServer) {
-		const socketPath = getSocketPath(protocol, hostname, port);
-		const eventEmitter = Object.create(EventEmitter.prototype);
+			return https.createServer({
+				key: certKeyPair.privateKey,
+				cert: certKeyPair.certificate,
+				SNICallback(hostname, cb) {
+					cb(null, tls.createSecureContext({
+						key: certKeyPair.privateKey,
+						cert: certKeyPair.certificate
+					}));
+				}
+			})
+		}
+	};
 
-		const result = Object.assign(eventEmitter, {
-			hostname, port, socketPath, protocol, address: null,
-			origin() {
-				return `${protocol === 'http:' ? 'http' : 'https'}://${this.hostname}:${this.port}`;
-			},
-			request(requestOptions) {
-				return (protocol === 'http:' ? http : https).request(requestOptions.url, {
-					method: requestOptions.method,
-					headers: requestOptions.headers,
-					timeout: requestOptions.timeout
-				});
+	function Shadow(hostname, port, protocol) {
+		const socketStorePath = path.resolve(socket.path, socket.getName(protocol, hostname, port));
+		const socketPath = platform === 'win32' ? path.join('\\\\?\\pipe', socketStorePath) : socketStorePath;
+		const agent = { http, https }[protocol];
+
+		const shadow = Object.assign(new EventEmitter(), {
+			address: null,
+			origin: `${protocol}://${hostname}:${port}`,
+			request({ url, method, headers, timeout }) {
+				return agent.request(url, { method, headers, timeout });
 			}
 		});
 
-		Promise.resolve(shadowServer()).then(server => {
-			server.on('upgrade', strategy.UpgradeHandler(result, onError));
-			server.on('request', strategy.RequestHandler(result, onError));
+		Promise.resolve(Server[protocol](hostname)).then(server => {
+			server.on('upgrade', strategy.UpgradeHandler(shadow, onError));
+			server.on('request', strategy.RequestHandler(shadow, onError));
 			server.listen(socketPath);
 
-			result.address = server.address();
-			result.emit('ready');
+			shadow.address = server.address();
+			shadow.emit('ready');
 		});
 
-
-		return result;
+		return shadow;
 	}
-
-	function getSocketPath(protocol, hostname, port) {
-		const socketPath = path.resolve(socket.path, socket.getName(protocol, hostname, port));
-
-		return platform === 'win32' ? path.join('\\\\?\\pipe', socketPath) : socketPath;
-	}
-
 
 	return {
 		fetch(protocol, hostname, port) {
-			const shadowName = `${protocol}//${hostname}:${port}`;
+			const shadowName = `${protocol}://${hostname}:${port}`;
 			const existed = store[shadowName];
 
 			if (existed) {
 				return existed;
 			}
 
-			return store[shadowName] = {
-				https() {
-
-					return Shadow(hostname, port, protocol, async function () {
-						const certKeyPair = await certificate.fetch(hostname);
-
-						return https.createServer({
-							key: certKeyPair.privateKey,
-							cert: certKeyPair.certificate,
-							SNICallback(hostname, cb) {
-								cb(null, tls.createSecureContext({
-									key: certKeyPair.privateKey,
-									cert: certKeyPair.certificate
-								}));
-							}
-						})
-					});
-				},
-				http() {
-					return Shadow(hostname, port, protocol, function () {
-						return http.createServer();
-					});
-				}
-			}[protocol.replace(/:$/, '')]();
+			return store[shadowName] = Shadow(hostname, port, protocol);
 		}
 	}
 }

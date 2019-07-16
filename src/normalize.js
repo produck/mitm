@@ -84,7 +84,6 @@ function validateOptions(options) {
 			const optionsValue = optionsNode[item];
 
 			if (typeof ruleValidator === 'object') {
-
 				validate(ruleValidator, optionsValue);
 			} else if (!ruleValidator(optionsValue)) {
 				throw new Error(`Bad value at options.${nodePath.join('.')}`);
