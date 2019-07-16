@@ -19,7 +19,7 @@ function send(origin, target) {
 }
 
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(shadow, mitmServer) {
+	return function RequestHandlerFactory(shadow, onError) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const raw = Context.Raw(clientRequest, shadow);
 			const contextInterface = Context.Interface(raw);
@@ -44,14 +44,14 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 					deleteContentLength(raw.request.headers);
 				}
 
-				const proxyRequest = Context.ForwardRequest(raw);
+				const proxyRequest = shadow.request(raw.request);
 
 				proxyRequest.on('aborted', () => clientRequest.abort());
 				clientRequest.on('aborted', () => proxyRequest.abort());
 
 				proxyRequest.on('timeout', () => { });
 				proxyRequest.on('error', error => {
-					mitmServer.emit('error:connetction', error);
+					onError();
 				});
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;

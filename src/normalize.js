@@ -16,11 +16,16 @@ module.exports = function normalize(options) {
 		if (item === 'socket') {
 			defaultOptions.socket = Object.assign(defaultOptions.socket, options[item]);
 		}
+
+		if (item === 'onError') {
+			defaultOptions.onError = Object.assign(defaultOptions.onError, options[item]);
+		}
+
 	})
 
 	validateOptions(defaultOptions);
 
-	try { 
+	try {
 		fs.accessSync(defaultOptions.socket.path, fs.constants.R_OK && fs.constants.W_OK);
 	} catch (error) {
 		if (error.code === 'ENOENT') {
@@ -52,11 +57,11 @@ const validateRule = {
 		response: isFunction
 	},
 	socket(any) {
-		if (!any.path) {
+		if (!any.path || !any.getName) {
 			return false;
 		}
 
-		return true;
+		return isFunction(any.getName);
 	},
 	certificate(any) {
 		if (!any.store.get || !any.store.set) {
@@ -64,7 +69,8 @@ const validateRule = {
 		}
 
 		return isFunction(any.store.get) || isFunction(any.store.set);
-	}
+	},
+	onError: isFunction 
 };
 
 function validateOptions(options) {
@@ -74,7 +80,7 @@ function validateOptions(options) {
 		Object.keys(ruleNode).forEach(item => {
 			nodePath.push(item);
 
-			const ruleValidator = ruleNode[item]; 
+			const ruleValidator = ruleNode[item];
 			const optionsValue = optionsNode[item];
 
 			if (typeof ruleValidator === 'object') {
@@ -112,15 +118,19 @@ function defaultOptionsFactory() {
 		},
 		socket: {
 			path: null,
+			getName(protocol, hostname, port) {
+				return `${protocol}-${hostname}-${port}`;
+			}
 		},
 		certificate: {
 			cert: null,
 			key: null,
 			store: {
-				get(any) {},
-				set(hostname, certKeyPair) {}
+				get(any) { },
+				set(hostname, certKeyPair) { }
 			}
-		}
+		},
+		onError() { }
 	}
 }
 

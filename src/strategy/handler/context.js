@@ -1,5 +1,3 @@
-const http = require('http');
-const https = require('https');
 const utils = require('./utils');
 
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
@@ -123,22 +121,10 @@ exports.Interface = function ContextInterface(raw) {
 	};
 };
 
-function Options(requestRaw) {
-	return {
-		method: requestRaw.method,
-		headers: requestRaw.headers,
-		timeout: requestRaw.timeout
-	};
-}
-
-exports.ForwardRequest = function request(raw) {
-	return (raw.request.url.protocol === 'http:' ? http : https).request(raw.request.url, Options(raw.request));
-};
-
 exports.Raw = function Raw(clientRequest, shadow) {
 	return {
 		request: {
-			url: new URL(clientRequest.url, shadow && shadow.origin),
+			url: new URL(clientRequest.url, shadow.origin()),
 			method: clientRequest.method,
 			headers: clientRequest.headers,
 			payload: {

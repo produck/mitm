@@ -1,40 +1,55 @@
 const http = require('http');
 const https = require('https');
 const tls = require('tls');
-const store = {};
+const EventEmitter = require('events');
+const platform = require('os').platform();
+const path = require('path');
 
-module.exports = function (mitmServer) {
+exports.Store = function (options) {
+	const store = {};
 
-	class Shadow {
-		constructor(hostname, port, shadowServer, isSecure) {
-			this.hostname = hostname;
-			this.port = port;
-			this.$server = shadowServer;
-			this.address = null;
-			this.isSecure = isSecure;
-			this.socketPath = isSecure ? mitmServer.getSocketPath('https:', hostname, port) : mitmServer.getSocketPath('http:', hostname, port);
+	const { strategy, socket, certificate, onError } = options;
 
-			this.$server.on('upgrade', mitmServer.strategy.UpgradeHandler(this, mitmServer));
-			this.$server.on('request', mitmServer.strategy.RequestHandler(this, mitmServer));
-			this.init();
-		}
+	function Shadow(hostname, port, protocol, shadowServer) {
+		const socketPath = getSocketPath(protocol, hostname, port);
+		const eventEmitter = Object.create(EventEmitter.prototype);
 
-		get origin() {
-			return `${this.isSecure ? 'https' : 'http'}://${this.hostname}:${this.port}`;
-		}
+		const result = Object.assign(eventEmitter, {
+			hostname, port, socketPath, protocol, address: null,
+			origin() {
+				return `${protocol === 'http:' ? 'http' : 'https'}://${this.hostname}:${this.port}`;
+			},
+			request(requestOptions) {
+				return (protocol === 'http:' ? http : https).request(requestOptions.url, {
+					method: requestOptions.method,
+					headers: requestOptions.headers,
+					timeout: requestOptions.timeout
+				});
+			}
+		});
 
-		init() {
-			this.$server.listen(this.socketPath);
-			this.address = this.$server.address();
-		}
+		Promise.resolve(shadowServer()).then(server => {
+			server.on('upgrade', strategy.UpgradeHandler(result, onError));
+			server.on('request', strategy.RequestHandler(result, onError));
+			server.listen(socketPath);
 
-		close() {
-			this.$server.close();
-		}
+			result.address = server.address();
+			result.emit('ready');
+		});
+
+
+		return result;
 	}
 
+	function getSocketPath(protocol, hostname, port) {
+		const socketPath = path.resolve(socket.path, socket.getName(protocol, hostname, port));
+
+		return platform === 'win32' ? path.join('\\\\?\\pipe', socketPath) : socketPath;
+	}
+
+
 	return {
-		async fetch(protocol, hostname, port) {
+		fetch(protocol, hostname, port) {
 			const shadowName = `${protocol}//${hostname}:${port}`;
 			const existed = store[shadowName];
 
@@ -42,28 +57,30 @@ module.exports = function (mitmServer) {
 				return existed;
 			}
 
-			const certKeyPair = await mitmServer.certificate.fetch(hostname);
+			return store[shadowName] = {
+				https() {
 
-			let shadow = null;
+					return Shadow(hostname, port, protocol, async function () {
+						const certKeyPair = await certificate.fetch(hostname);
 
-			if (protocol === 'https:') {
-				shadow = new Shadow(hostname, port, https.createServer({
-					key: certKeyPair.privateKey,
-					cert: certKeyPair.certificate,
-					SNICallback(hostname, cb) {
-						cb(null, tls.createSecureContext({
+						return https.createServer({
 							key: certKeyPair.privateKey,
-							cert: certKeyPair.certificate
-						}));
-					}
-				}), true);
-			} else {
-				shadow = new Shadow(hostname, port, http.createServer(), false);
-			}
-
-			store[shadowName] = shadow;
-
-			return shadow;
+							cert: certKeyPair.certificate,
+							SNICallback(hostname, cb) {
+								cb(null, tls.createSecureContext({
+									key: certKeyPair.privateKey,
+									cert: certKeyPair.certificate
+								}));
+							}
+						})
+					});
+				},
+				http() {
+					return Shadow(hostname, port, protocol, function () {
+						return http.createServer();
+					});
+				}
+			}[protocol.replace(/:$/, '')]();
 		}
 	}
 }

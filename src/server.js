@@ -1,9 +1,6 @@
 const net = require('net');
-const path = require('path');
-const platform = require('os').platform();
-
 const Strategy = require('./strategy');
-const ShadowStore = require('./shadow');
+const shadow = require('./shadow');
 const CertificateStore = require('./certificate');
 
 const EOL = '\r\n';
@@ -16,10 +13,27 @@ function isPlainText(message) {
 	return ORIGIN_REG.test(message);
 }
 
-function connectShadow(address) {
-	return net.connect(address).on('error', e => {
-		console.log(e);
+function connectShadow(shadow) {
+	return new Promise((resolve, reject) => {
+		if (shadow.address) {
+			const socket = net.connect(shadow.address);
+			socket.on('error', e => {
+				reject(e)
+			});
+
+			resolve(socket);
+		}
+
+		shadow.on('ready', () => {
+			const socket = net.connect(shadow.address);
+			socket.on('error', e => {
+				reject(e)
+			});
+
+			resolve(socket);
+		})
 	})
+
 }
 
 function send(origin, target, header) {
@@ -36,20 +50,27 @@ class MitmServer extends net.Server {
 		if (!(this instanceof MitmServer)) {
 			return new MitmServer();
 		}
-		const { strategyOptions, socket, certificate } = normalize(options);
+		const { strategyOptions, socket, certificate, onError } = normalize(options);
 
-		this.strategy = new Strategy(strategyOptions);
-		this.socket = socket;
-		this.certificate = new CertificateStore(certificate);
 
-		const isSecure = Boolean(certificate.key);
+		const sslSupported = Boolean(certificate.key && certificate.cert);
+
+		const strategy = Strategy.createStrategy(strategyOptions);
+
+		const shadowStore = shadow.Store({
+			strategy, socket, onError,
+			certificate: new CertificateStore(certificate),
+		});
+
+
 
 		this.on('connection', socket => {
 			socket.on('error', (e) => {
+				onError();
 				this.emit('error:connection', e)
-			}).once('data',async chunk => {
+			}).once('data', async chunk => {
 				const [method, url] = chunk.toString().split(EOL)[0].split(' ');
-				
+
 				if (method === 'CONNECT') {
 					socket.write(BODY);
 
@@ -58,11 +79,9 @@ class MitmServer extends net.Server {
 						const [hostname, port] = url.split(':');
 
 						if (isPlainText(chunk.toString())) {
-							const { address } = await ShadowStore(this).fetch('http:', hostname, port);
-							proxySocket = connectShadow(address);
-						} else if (await this.strategy.sslConnectInterceptor(socket, chunk) && isSecure) {
-							const { address } = await ShadowStore(this).fetch('https:', hostname, port);
-							proxySocket = connectShadow(address);
+							proxySocket = await connectShadow(shadowStore.fetch('http:', hostname, port));
+						} else if (sslSupported && await strategy.sslConnectInterceptor(socket, chunk)) {
+							proxySocket = await connectShadow(shadowStore.fetch('https:', hostname, port));
 						} else {
 							proxySocket = net.connect(port, hostname);
 						}
@@ -70,26 +89,18 @@ class MitmServer extends net.Server {
 						send(socket, proxySocket, chunk);
 					});
 				} else {
-					const {hostname, port} = new URL(url);
-					const { address } = await ShadowStore(this).fetch('http:', hostname, port);
-					const proxySocket = connectShadow(address);
-
+					const { hostname, port } = new URL(url);
+					const proxySocket = await connectShadow(shadowStore.fetch('http:', hostname, port));
 					send(socket, proxySocket, chunk);
 				}
 			});
 		});
 	}
-
-	getSocketPath(protocol, hostname, port) {
-		const socketPath = path.resolve(this.socket.path, this.socket.getName(protocol, hostname, port));
-
-		return platform === 'win32' ? path.join('\\\\?\\pipe', socketPath) : socketPath;
-	}
 }
 
 exports.MitmServer = MitmServer;
 
-exports.createServer =  function createServer(options) {
+exports.createServer = function createServer(options) {
 	const normalizedOptions = normalize(options);
 
 	return new MitmServer(normalizedOptions);

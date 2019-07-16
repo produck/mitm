@@ -8,9 +8,12 @@
     "node-forge": "^0.8.2"
   },
   "devDependencies": {
+    "axios": "^0.19.0",
     "axios-https-proxy-fix": "^0.17.1",
     "eslint": "^5.16.0",
-    "mocha": "^6.1.4"
+    "http-proxy-agent": "^2.1.0",
+    "mocha": "^6.1.4",
+    "ws": "^7.1.0"
   },
   "scripts": {
     "test": "mocha"
