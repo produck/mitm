@@ -30,7 +30,7 @@ function contextRequest(requestRaw) {
 
 			return requestRaw.method = any.toUpperCase();
 		},
-		
+
 		get url() {
 			return requestRaw.url;
 		},
@@ -58,7 +58,7 @@ function contextRequest(requestRaw) {
 		set body(any) {
 			requestRaw.payload.changed = true;
 
-			return requestRaw.payload.body = 
+			return requestRaw.payload.body =
 				isReadable(any) ? any : Buffer.from(any);
 		},
 
@@ -83,11 +83,11 @@ function contextResponse(responseRaw) {
 		},
 
 		set statusCode(any) {
-			if(typeof any === 'number') {
+			if (typeof any === 'number') {
 				return responseRaw.statusCode = any;
 			}
 		},
-		
+
 		get statusMessage() {
 			return responseRaw.statusMessage;
 		},
@@ -96,7 +96,7 @@ function contextResponse(responseRaw) {
 			if (typeof any === 'string') {
 				return responseRaw.statusMessage = any;
 			}
-			
+
 			throw new Error('Status message MUST be a string.');
 		},
 
@@ -119,7 +119,7 @@ function contextResponse(responseRaw) {
 		set body(any) {
 			responseRaw.payload.changed = true;
 
-			return responseRaw.payload.body = 
+			return responseRaw.payload.body =
 				isReadable(any) ? any : Buffer.from(any);
 		}
 	}

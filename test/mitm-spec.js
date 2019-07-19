@@ -56,11 +56,15 @@ describe('Mitm::', () => {
 	};
 
 	const finalOptions = normalize(options);
-
 	const mitmServer = mitm.createServer(finalOptions);
+
 	mitmServer.listen(8090);
 
-	const hostname = '127.0.0.1';
+	it('##create a mitm instance', () => {
+		const mitmServer = mitm.createServer();
+
+		assert(mitmServer instanceof mitm.Server);
+	})
 
 	describe('#normalize', () => {
 		it('should get a normalized parameter correctly', () => {
@@ -80,14 +84,15 @@ describe('Mitm::', () => {
 	describe('#certificate', () => {
 		it('should fetch a certificate key pair by hostname correctly', async () => {
 			const certificate = new Certificate(finalOptions.certificate);
-			assert(await certificate.fetch(hostname));
+
+			assert(await certificate.fetch('127.0.0.1'));
 		})
 	})
 
 	describe('#shadow', () => {
 		it('should fetch a shadow for the connections use http correctly', async () => {
 			const httpShadow = shadow.Store({
-				strategy: Strategy.createStrategy(finalOptions.strategyOptions),
+				strategy: Strategy(finalOptions.strategyOptions),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
 				certificate: new Certificate(finalOptions.certificate)
@@ -95,20 +100,21 @@ describe('Mitm::', () => {
 
 			assert(httpShadow);
 			assert.deepEqual(httpShadow.origin, 'http://http://coolaf.com/tool/chattest:');
-		
+
 			httpShadow.on('ready', () => {
 				assert.deepEqual(httpShadow.address, '\\\\?\\pipe\\C:\\socketStore\\http-http:\\coolaf.com\\tool\\chattest-');
 			})
-			
+
 		})
+		
 		it('should fetch a shadow for the connections use https correctly', async () => {
 			const httpsShadow = shadow.Store({
-				strategy: Strategy.createStrategy(finalOptions.strategyOptions),
+				strategy: Strategy(finalOptions.strategyOptions),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
 				certificate: new Certificate(finalOptions.certificate)
 			}).fetch('https', 'www.npmjs.com', '');
-			
+
 			assert(httpsShadow);
 			assert.deepEqual(httpsShadow.origin, 'https://www.npmjs.com:');
 
@@ -120,7 +126,7 @@ describe('Mitm::', () => {
 
 	describe('#strategy', () => {
 		it('should return a strategy', () => {
-			const strategy = Strategy.createStrategy(finalOptions.strategyOptions);
+			const strategy = Strategy(finalOptions.strategyOptions);
 
 			assert(strategy);
 		})
@@ -128,7 +134,7 @@ describe('Mitm::', () => {
 		describe('##context', () => {
 			it('###Raw', async () => {
 				const httpShadow = shadow.Store({
-					strategy: Strategy.createStrategy(finalOptions.strategyOptions),
+					strategy: Strategy(finalOptions.strategyOptions),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
 					certificate: new Certificate(finalOptions.certificate)
@@ -142,7 +148,7 @@ describe('Mitm::', () => {
 
 			it('###Interface', async () => {
 				const httpShadow = shadow.Store({
-					strategy: Strategy.createStrategy(finalOptions.strategyOptions),
+					strategy: Strategy(finalOptions.strategyOptions),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
 					certificate: new Certificate(finalOptions.certificate)

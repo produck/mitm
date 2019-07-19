@@ -1,18 +1,16 @@
-import { Socket } from "net";
 import { isStrategy } from "./src/strategy";
 
 declare namespace mitm {
-	declare class MitmServer{
+	declare class MitmServer {
 		/**
 		 * Create mitm server instance
 		 * 
 		 * @param options 
 		 */
-		constructor(options: any);
 
-		getSocketPath(protocol: string, hostname: string, port: number) : string;
-		
+		constructor(options: any);
 	}
+
 	/**
 	 * Create mitm server.
 	 * The options should include strategy, socket ,certificateStore and ssl.
@@ -20,16 +18,16 @@ declare namespace mitm {
 	 * 
 	 * @param options 
 	 */
+
 	declare function createServer(options: {
-		strategy: Strategy,
-		socket: { 
-			path: string, 
+		strategyOptions?: object,
+		socket?: {
+			path: string,
 			getName(protocol: string, hostname: string, port: number): string
 		},
-		certificateStore?: CertificateStore,
-		ssl?: { cert: string, key: string }
-		}): MitmServer;
-	
+		certificate?: CertificateStore,
+		onError(type: string, message: string): any;
+	}): MitmServer;
 }
 
 export = mitm;

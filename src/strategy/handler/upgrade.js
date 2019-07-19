@@ -1,7 +1,7 @@
 const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
-module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
-	return function upgradeHandlerFactory(shadow, onError) {
+module.exports = function createUpgradeHandlerFactory(websocketInterceptor, onError) {
+	return function upgradeHandlerFactory(shadow) {
 		return function upgradeHandler(clientRequest, clientSocket, head) {
 			const target = new URL(clientRequest.url, shadow.origin);
 

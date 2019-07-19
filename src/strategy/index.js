@@ -3,12 +3,12 @@ const HandlerFactory = {
 	Upgrade: require('./handler/upgrade')
 };
 
-exports.createStrategy = function createStrategy(interceptorOptions) {
-	const { sslConnect, websocket, request, response } = interceptorOptions;
+module.exports = function createStrategy(options, onError) {
+	const { sslConnect, websocket, request, response } = options;
 
 	return {
 		sslConnectInterceptor: sslConnect,
-		RequestHandler: HandlerFactory.Request(request, response),
-		UpgradeHandler: HandlerFactory.Upgrade(websocket)
+		RequestHandler: HandlerFactory.Request(request, response, onError),
+		UpgradeHandler: HandlerFactory.Upgrade(websocket, onError)
 	}
 }

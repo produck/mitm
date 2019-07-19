@@ -42,13 +42,9 @@ class MitmServer extends net.Server {
 	constructor(options) {
 		super();
 
-		if (!(this instanceof MitmServer)) {
-			return new MitmServer();
-		}
-
-		const { strategyOptions, socket, certificate, onError } = normalize(options);
+		const { strategyOptions, socket, certificate, onError } = options;
 		const sslSupported = Boolean(certificate.key && certificate.cert);
-		const strategy = Strategy.createStrategy(strategyOptions);
+		const strategy = Strategy(strategyOptions);
 		const shadowStore = shadow.Store({
 			strategy, socket, onError,
 			certificate: new CertificateStore(certificate),
@@ -87,7 +83,12 @@ class MitmServer extends net.Server {
 	}
 }
 
-exports.MitmServer = MitmServer;
+exports.MitmServer = new Proxy(MitmServer, {
+	construct() {
+		throw new Error('Illegal construction.');
+	}
+});
+
 exports.createServer = function createServer(options) {
 	const normalizedOptions = normalize(options);
 

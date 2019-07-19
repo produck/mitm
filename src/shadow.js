@@ -7,7 +7,7 @@ const path = require('path');
 
 exports.Store = function (options) {
 	const store = {};
-	const { strategy, socket, certificate, onError } = options;
+	const { strategy, socket, certificate } = options;
 	const Server = {
 		http() {
 			return http.createServer();
@@ -42,8 +42,8 @@ exports.Store = function (options) {
 		});
 
 		Promise.resolve(Server[protocol](hostname)).then(server => {
-			server.on('upgrade', strategy.UpgradeHandler(shadow, onError));
-			server.on('request', strategy.RequestHandler(shadow, onError));
+			server.on('upgrade', strategy.UpgradeHandler(shadow));
+			server.on('request', strategy.RequestHandler(shadow));
 			server.listen(socketPath);
 
 			shadow.address = server.address();

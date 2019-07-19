@@ -4,14 +4,16 @@ const path = require('path');
 module.exports = function normalize(options) {
 	const defaultOptions = defaultOptionsFactory();
 
-	Object.keys(options).forEach(item => {
-		if (item === 'strategyOptions') {
-			const { 
-				sslConnect = defaultOptions.strategyOptions.sslConnect, 
-				websocket = defaultOptions.strategyOptions.websocket, 
-				request = defaultOptions.strategyOptions.request, 
-				response = defaultOptions.strategyOptions.response 
-			} = options[item];
+	if (options) {
+		const { strategyOptions, certificate, socket, onError } = options;
+
+		if (strategyOptions) {
+			const {
+				sslConnect = defaultOptions.strategyOptions.sslConnect,
+				websocket = defaultOptions.strategyOptions.websocket,
+				request = defaultOptions.strategyOptions.request,
+				response = defaultOptions.strategyOptions.response
+			} = strategyOptions;
 
 			if (!isFunction(sslConnect)) {
 				throw new Error('`sslConnect` is not a function');
@@ -35,12 +37,12 @@ module.exports = function normalize(options) {
 			defaultOptions.strategyOptions.response = response;
 		}
 
-		if (item === 'certificate') {
-			const { 
-				cert = defaultOptions.certificate.cert, 
-				key = defaultOptions.certificate.key, 
-				store 
-			} = options[item];
+		if (certificate) {
+			const {
+				cert = defaultOptions.certificate.cert,
+				key = defaultOptions.certificate.key,
+				store
+			} = certificate;
 
 			if (!cert || !key) {
 				throw new Error('root certificate properties could not be empty.');
@@ -59,11 +61,11 @@ module.exports = function normalize(options) {
 			defaultOptions.certificate.store = store;
 		}
 
-		if (item === 'socket') {
+		if (socket) {
 			const {
 				path = defaultOptions.socket.path,
 				getName = defaultOptions.socket.getName
-			} = options[item];
+			} = socket;
 
 			if (!path) {
 				throw new Error('socket path must not be empty.');
@@ -77,17 +79,10 @@ module.exports = function normalize(options) {
 			defaultOptions.socket.getName = getName;
 		}
 
-		if (item === 'onError') {
-			const onError = options[item];
-
-			if (!isFunction(onError)) {
-				throw new Error('`onError` is not a function.');
-			}
-
+		if (onError && isFunction(onError)) {
 			defaultOptions.onError = onError;
 		}
-
-	})
+	}
 
 	try {
 		fs.accessSync(defaultOptions.socket.path, fs.constants.R_OK && fs.constants.W_OK);
@@ -130,7 +125,7 @@ function defaultOptionsFactory() {
 			}
 		},
 		socket: {
-			path: null,
+			path: path.resolve('__dirname'),
 			getName(protocol, hostname, port) {
 				return `${protocol}-${hostname}-${port}`;
 			}

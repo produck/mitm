@@ -11,15 +11,15 @@ function deleteContentLength(headers) {
 }
 
 function send(origin, target) {
-	if (origin.readable && origin.pipe && origin.pipe instanceof Function) {
+	if (origin.readable && origin.pipe && typeof origin.pipe === 'function') {
 		origin.pipe(target);
 	} else {
 		target.end(origin);
 	}
 }
 
-module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor) {
-	return function RequestHandlerFactory(shadow, onError) {
+module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor, onError) {
+	return function RequestHandlerFactory(shadow) {
 		return async function RequestHandler(clientRequest, clientResponse) {
 			const raw = Context.Raw(clientRequest, shadow);
 			const contextInterface = Context.Interface(raw);

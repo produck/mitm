@@ -16,18 +16,13 @@ $ npm install @lemonce/mitm
 
 ## Get Started
 
-Require Mitm as a function to both create and instance of Mitm and enable intercepting. Basic usage with default options. For Example. 
+Create a mitm instance by functions. Basic usage with default options. For Example. 
 
-```js
-const MitmServer = require('@lemonce/mitm').Server;
-const mitmServer = new MitmServer();
-
-```
-Otherwise, it will return a mitm server instance by function.
 ```js
 const mitm = require('@lemonce/mitm');
 const mitmServer = mitm.createServer();
 ```
+
 
 ## API Referrence
 
@@ -37,10 +32,10 @@ Instantiates Mitm Server using the supplied options. This section will discuss e
 
 | Name | Type | Description |
 | -- | -- | -- |  
-| strategyOptions | Object | Strategy options.[OPTIONAL]  |
-| socket | Object | Socket options.[MUST] |
-| certificate | Object | Root cerificate and its storage method. [OPTIONAL]|
-| onError | Function | Handle the Mitm error. [MUST] |
+| strategyOptions | Object | Strategy options. |
+| socket | Object | Socket options. |
+| certificate | Object | Root cerificate and its storage method. |
+| onError | Function | Handle the Mitm error.  |
 
 #### parameters for strategyOptions
 
@@ -48,18 +43,18 @@ According to your needs, you can set up interception strategy. Using the followi
 
 | Name | Type | Description |
 | -- | -- | -- |
-| sslConnect | Function | SSL supported. The default value is false. [OPTIONAL]|
-| websocket | Function | WebSocket supported. The default value is supported. [OPTIONAL]|
-| request | Function | Request options. The default method is forward. [OPTIONAL]|
-| response | Function | Response options. The default method is respond. [OPTIONAL]|
+| sslConnect | Function | SSL supported. The default value is false. |
+| websocket | Function | WebSocket supported. The default value is supported. |
+| request | Function | Request options. The default method is forward. |
+| response | Function | Response options. The default method is respond. |
 
 
 #### parameters for socket
 
 | Name | Type | Description |
 | -- | -- | -- |
-| path | String | Socket path.[MUST] |
-| getName | Function | Return a socket store path. [MUST]|
+| path | String | Socket path. |
+| getName | Function | Return a socket store path. |
 
 #### parameters for certificate
 
@@ -67,9 +62,9 @@ When you need to intercept the HTTPS request, the root certifiacate information 
 
 | Name | Type | Description |
 | -- | -- | -- |
-| cert | String | Root certificate's cert. [OPTIONAL]|
-| key | String | Root certificate's RAS private key. [OPTIONAL] |
-| store | Function | Certificate storage methods. [OPTIONAL] |
+| cert | String | Root certificate's cert. |
+| key | String | Root certificate's RAS private key.  |
+| store | Function | Certificate storage methods.  |
 
 ## Using
 
