@@ -13,7 +13,7 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 			});
 
 			proxyRequest.on('error', (e) => {
-				onError();
+				onError(e, e.message);
 			});
 
 			proxyRequest.on('response', proxyResponse => {
@@ -24,12 +24,13 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor) {
 			});
 
 			proxyRequest.on('upgrade', (proxyResponse, proxySocket, proxyHead) => {
-				proxySocket.on('error', (error) => {
-					onError();
+				proxySocket.on('error', e => {
+					onError('upgrade', e.message);
 				});
 
-				clientSocket.on('error', function () {
+				clientSocket.on('error', e => {
 					proxySocket.end();
+					onError('upgrade', e.message);
 				});
 
 				proxySocket.setTimeout(0);

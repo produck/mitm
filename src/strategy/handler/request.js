@@ -49,9 +49,11 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.on('aborted', () => clientRequest.abort());
 				clientRequest.on('aborted', () => proxyRequest.abort());
 
-				proxyRequest.on('timeout', () => { });
-				proxyRequest.on('error', error => {
-					onError();
+				proxyRequest.on('timeout', e => {
+					onError('timeout', e.message);
+				});
+				proxyRequest.on('error', e => {
+					onError('error', e.message);
 				});
 				proxyRequest.on('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;

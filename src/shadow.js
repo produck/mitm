@@ -28,7 +28,7 @@ exports.Store = function (options) {
 		}
 	};
 
-	function Shadow(hostname, port, protocol) {
+	function Shadow(protocol, hostname, port) {
 		const socketStorePath = path.resolve(socket.path, socket.getName(protocol, hostname, port));
 		const socketPath = platform === 'win32' ? path.join('\\\\?\\pipe', socketStorePath) : socketStorePath;
 		const agent = { http, https }[protocol];
@@ -62,7 +62,7 @@ exports.Store = function (options) {
 				return existed;
 			}
 
-			return store[shadowName] = Shadow(hostname, port, protocol);
+			return store[shadowName] = Shadow(protocol, hostname, port);
 		}
 	}
 }

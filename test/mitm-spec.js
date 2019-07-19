@@ -1,19 +1,14 @@
 const mitm = require('..');
-const normalize = require('../src/normalize');
 const rootCA = require('./test-cert.json');
 const path = require('path');
 const assert = require('assert');
-const { Stream } = require('stream');
 const axios = require('axios');
 const Http = require('http');
-const url = require('url');
-const WebSocket = require('ws');
-const HttpProxyAgent = require('http-proxy-agent');
 
-const CertificateStore = require('../src/certificate');
+const normalize = require('../src/normalize');
+const Certificate = require('../src/certificate');
 const shadow = require('../src/shadow');
 const Strategy = require('../src/strategy');
-const utils = require('../src/strategy/handler/utils');
 const Context = require('../src/strategy/handler/context');
 
 describe('Mitm::', () => {
@@ -67,35 +62,24 @@ describe('Mitm::', () => {
 
 	const hostname = '127.0.0.1';
 
-	before(function createWebSocketServer() {
-		const wss = new WebSocket.Server({ port: 8080 });
-
-		wss.on('connection', (socket) => {
-			socket.on('message', (msg) => {
-				console.log('Server:', msg);
-				socket.send('world');
-			});
-
-			socket.on('error', function (err) {
-				console.log(err);
-			});
-		})
-	})
-
 	describe('#normalize', () => {
 		it('should get a normalized parameter correctly', () => {
 			const normalizedOptions = normalize({
 				socket: {
-					path: path.resolve(__dirname, '/socketStore')
+					path: path.resolve(__dirname, '/socketStore'),
+					getName(protocol, hostname, port) {
+						return `${protocol}-${hostname}-${port}`;
+					}
 				}
 			});
+
 			assert(normalizedOptions);
 		})
 	})
 
 	describe('#certificate', () => {
 		it('should fetch a certificate key pair by hostname correctly', async () => {
-			const certificate = new CertificateStore(finalOptions.certificate);
+			const certificate = new Certificate(finalOptions.certificate);
 			assert(await certificate.fetch(hostname));
 		})
 	})
@@ -106,20 +90,31 @@ describe('Mitm::', () => {
 				strategy: Strategy.createStrategy(finalOptions.strategyOptions),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
-				certificate: new CertificateStore(finalOptions.certificate)
-			}).fetch('http:', 'http://coolaf.com/tool/chattest', '');
+				certificate: new Certificate(finalOptions.certificate)
+			}).fetch('http', 'http://coolaf.com/tool/chattest', '');
+
 			assert(httpShadow);
-			assert.deepEqual(httpShadow.protocol, 'http:');
+			assert.deepEqual(httpShadow.origin, 'http://http://coolaf.com/tool/chattest:');
+		
+			httpShadow.on('ready', () => {
+				assert.deepEqual(httpShadow.address, '\\\\?\\pipe\\C:\\socketStore\\http-http:\\coolaf.com\\tool\\chattest-');
+			})
+			
 		})
 		it('should fetch a shadow for the connections use https correctly', async () => {
 			const httpsShadow = shadow.Store({
 				strategy: Strategy.createStrategy(finalOptions.strategyOptions),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
-				certificate: new CertificateStore(finalOptions.certificate)
-			}).fetch('https:', 'www.npmjs.com', '');
+				certificate: new Certificate(finalOptions.certificate)
+			}).fetch('https', 'www.npmjs.com', '');
+			
 			assert(httpsShadow);
-			assert.deepEqual(httpsShadow.protocol, 'https:')
+			assert.deepEqual(httpsShadow.origin, 'https://www.npmjs.com:');
+
+			httpsShadow.on('ready', () => {
+				assert.deepEqual(httpsShadow.address, '\\\\?\\pipe\\C:\\socketStore\\https-www.npmjs.com-');
+			})
 		})
 	})
 
@@ -136,8 +131,8 @@ describe('Mitm::', () => {
 					strategy: Strategy.createStrategy(finalOptions.strategyOptions),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
-					certificate: new CertificateStore(finalOptions.certificate)
-				}).fetch('https:', 'www.bilibili.com', '')
+					certificate: new Certificate(finalOptions.certificate)
+				}).fetch('https', 'www.bilibili.com', '')
 				assert(Context.Raw(Http.request('http://www.baidu.com', {
 					headers: {
 						'Content-Type': 'text/xml',
@@ -150,8 +145,8 @@ describe('Mitm::', () => {
 					strategy: Strategy.createStrategy(finalOptions.strategyOptions),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
-					certificate: new CertificateStore(finalOptions.certificate)
-				}).fetch('http:', 'coolaf.com/tool/chattest', '')
+					certificate: new Certificate(finalOptions.certificate)
+				}).fetch('http', 'coolaf.com/tool/chattest', '')
 				const raw = Context.Raw(Http.request('http://coolaf.com/tool/chattest', {
 					headers: {
 						'Content-Type': 'text/xml',
@@ -162,20 +157,6 @@ describe('Mitm::', () => {
 
 				assert(contextInterface.request);
 				assert(contextInterface.response);
-			})
-		})
-
-		describe('##utils', () => {
-			it('###isReadable()', () => {
-				assert(utils.isReadable(new Stream()));
-				assert.deepEqual(utils.isReadable('ok'), false);
-			})
-
-			it('###isValidMethod()', () => {
-				assert(utils.isValidMethod('get'));
-				assert(utils.isValidMethod('post'));
-				assert(utils.isValidMethod('options'));
-				assert.deepEqual(utils.isValidMethod('abc'), false);
 			})
 		})
 	})
@@ -208,29 +189,5 @@ describe('Mitm::', () => {
 		});
 
 		assert.deepEqual(responseA.data, 'hello, world!');
-	})
-
-	it('#proxy for ws', () => {
-		const wsMitm = mitm.createServer(finalOptions);
-		wsMitm.listen(9000);
-
-		const proxy = url.parse('http://127.0.0.1:9000')
-		const agent = new HttpProxyAgent(proxy);
-
-		const ws = new WebSocket('ws://127.0.0.1:8080', { agent });
-
-		
-		ws.onopen = () => {
-			ws.send('hello');
-			ws.close();
-		}
-
-		ws.onmessage = (msg) => {
-			console.log('Received Message: ' + msg.data);
-		};
-
-		ws.onclose = () => {
-			console.log('stop');
-		}
 	})
 })

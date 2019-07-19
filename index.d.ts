@@ -2,20 +2,6 @@ import { Socket } from "net";
 import { isStrategy } from "./src/strategy";
 
 declare namespace mitm {
-	/**
-	 * The set of interceptor mehtod.
-	 * It includes the interceptor of sslConnection, request, response and upgrade.
-	 */
-	declare class Strategy {
-		constructor(interceptorOptions: {
-			sslConnect: boolean, 
-			websocket?: (clientSocket: Socket, proxySocket: Socket) => {} 
-			request?: (context, respond, forward) => {}, 
-			response?: (context, respond) => {}
-		});
-
-		isStrategy(any: any): boolean;
-	}
 	declare class MitmServer{
 		/**
 		 * Create mitm server instance
@@ -44,29 +30,6 @@ declare namespace mitm {
 		ssl?: { cert: string, key: string }
 		}): MitmServer;
 	
-	declare class CertificateStore{
-		/**
-		 * create a certificate for shadow
-		 * 
-		 * @param caCert 
-		 * @param caKey 
-		 * @param initData 
-		 */
-		constructor(caCert: string, caKey: string, initData: {});
-
-		/**
-		 * Fetch a shadow for the provided hostname
-		 * If the shadow is existed, it will returns the founded.
-		 * Otherwise, according to the hostname, the shadow will be created.
-		 */
-		fetch(hostname: string): () => {};
-
-		/**
-		 * 
-		 * @param any 
-		 */
-		isCertificateStore(any: any): boolean;
-	}
 }
 
 export = mitm;

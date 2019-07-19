@@ -6,24 +6,88 @@ module.exports = function normalize(options) {
 
 	Object.keys(options).forEach(item => {
 		if (item === 'strategyOptions') {
-			defaultOptions.strategyOptions = Object.assign(defaultOptions.strategyOptions, options[item]);
+			const { 
+				sslConnect = defaultOptions.strategyOptions.sslConnect, 
+				websocket = defaultOptions.strategyOptions.websocket, 
+				request = defaultOptions.strategyOptions.request, 
+				response = defaultOptions.strategyOptions.response 
+			} = options[item];
+
+			if (!isFunction(sslConnect)) {
+				throw new Error('`sslConnect` is not a function');
+			}
+
+			if (!isFunction(websocket)) {
+				throw new Error('`webSocket` is not a function');
+			}
+
+			if (!isFunction(request)) {
+				throw new Error('`request` is not a function');
+			}
+
+			if (!isFunction(response)) {
+				throw new Error('`response` is not a function');
+			}
+
+			defaultOptions.strategyOptions.sslConnect = sslConnect;
+			defaultOptions.strategyOptions.websocket = websocket;
+			defaultOptions.strategyOptions.request = request;
+			defaultOptions.strategyOptions.response = response;
 		}
 
 		if (item === 'certificate') {
-			defaultOptions.certificate = Object.assign(defaultOptions.certificate, options[item]);
+			const { 
+				cert = defaultOptions.certificate.cert, 
+				key = defaultOptions.certificate.key, 
+				store 
+			} = options[item];
+
+			if (!cert || !key) {
+				throw new Error('root certificate properties could not be empty.');
+			}
+
+			if (!store || !store.get || !store.set) {
+				throw new Error('self-made certificate storage not be provided.');
+			}
+
+			if (!isFunction(store.get) || !isFunction(store.set)) {
+				throw new Error('certificate storage method `get` or `set` is not a function.');
+			}
+
+			defaultOptions.certificate.cert = cert;
+			defaultOptions.certificate.key = key;
+			defaultOptions.certificate.store = store;
 		}
 
 		if (item === 'socket') {
-			defaultOptions.socket = Object.assign(defaultOptions.socket, options[item]);
+			const {
+				path = defaultOptions.socket.path,
+				getName = defaultOptions.socket.getName
+			} = options[item];
+
+			if (!path) {
+				throw new Error('socket path must not be empty.');
+			}
+
+			if (!isFunction(getName)) {
+				throw new Error('`getName` is not a function');
+			}
+
+			defaultOptions.socket.path = path;
+			defaultOptions.socket.getName = getName;
 		}
 
 		if (item === 'onError') {
-			defaultOptions.onError = Object.assign(defaultOptions.onError, options[item]);
+			const onError = options[item];
+
+			if (!isFunction(onError)) {
+				throw new Error('`onError` is not a function.');
+			}
+
+			defaultOptions.onError = onError;
 		}
 
 	})
-
-	validateOptions(defaultOptions);
 
 	try {
 		fs.accessSync(defaultOptions.socket.path, fs.constants.R_OK && fs.constants.W_OK);
@@ -45,57 +109,7 @@ module.exports = function normalize(options) {
 		fs.statSync(filePath).isDirectory() ? null : fs.unlinkSync(filePath);
 	});
 
-
 	return defaultOptions;
-}
-
-const validateRule = {
-	strategyOptions: {
-		sslConnect: isFunction,
-		webSocket: isFunction,
-		request: isFunction,
-		response: isFunction
-	},
-	socket(any) {
-		if (!any.path || !any.getName) {
-			return false;
-		}
-
-		return isFunction(any.getName);
-	},
-	certificate(any) {
-		if (!any.store.get || !any.store.set) {
-			return false;
-		}
-
-		return isFunction(any.store.get) || isFunction(any.store.set);
-	},
-	onError: isFunction 
-};
-
-function validateOptions(options) {
-	const nodePath = [];
-
-	function validate(ruleNode, optionsNode) {
-		Object.keys(ruleNode).forEach(item => {
-			nodePath.push(item);
-
-			const ruleValidator = ruleNode[item];
-			const optionsValue = optionsNode[item];
-
-			if (typeof ruleValidator === 'object') {
-				validate(ruleValidator, optionsValue);
-			} else if (!ruleValidator(optionsValue)) {
-				throw new Error(`Bad value at options.${nodePath.join('.')}`);
-			}
-
-			nodePath.pop();
-		});
-	}
-
-	validate(validateRule, options);
-
-	return true;
 }
 
 function defaultOptionsFactory() {
@@ -104,7 +118,7 @@ function defaultOptionsFactory() {
 			sslConnect() {
 				return false;
 			},
-			webSocket(clientSocket, proxySocket) {
+			websocket(clientSocket, proxySocket) {
 				clientSocket.pipe(proxySocket);
 				proxySocket.pipe(clientSocket);
 			},
@@ -125,11 +139,11 @@ function defaultOptionsFactory() {
 			cert: null,
 			key: null,
 			store: {
-				get(any) { },
-				set(hostname, certKeyPair) { }
+				get(any) { return null; },
+				set(hostname, certKeyPair) { return null; }
 			}
 		},
-		onError() { }
+		onError() { return true; }
 	}
 }
 

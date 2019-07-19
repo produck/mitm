@@ -26,6 +26,9 @@ const cache = {};
 
 const server = mitm.createServer({
 	strategyOptions: {
+		sslConnect() {
+			return true;
+		},
 		request(context, respond, forward) {
 			context.response.body = 'ok';
 			context.response.headers = {};
@@ -51,6 +54,10 @@ const server = mitm.createServer({
 		getName(protocol, hostname, port) {
 			return `${protocol}-${hostname}-${port}`;
 		}
+	},
+	onError(type, message) {
+		console.log('type:', type);
+		console.log('message:', message);
 	}
 });
 

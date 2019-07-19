@@ -20,7 +20,7 @@ function connectShadow(shadow) {
 
 			resolve(socket);
 			socket.on('error', e => {
-				reject(e)
+				reject(e);
 			});
 		}
 
@@ -56,7 +56,7 @@ class MitmServer extends net.Server {
 
 		this.on('connection', socket => {
 			socket.on('error', (e) => {
-				onError();
+				onError('connection', e.message);
 			}).once('data', async chunk => {
 				const [method, url] = chunk.toString().split(EOL)[0].split(' ');
 
