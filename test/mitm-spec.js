@@ -92,7 +92,7 @@ describe('Mitm::', () => {
 	describe('#shadow', () => {
 		it('should fetch a shadow for the connections use http correctly', async () => {
 			const httpShadow = shadow.Store({
-				strategy: Strategy(finalOptions.strategy),
+				strategy: Strategy(finalOptions.strategy, finalOptions.onError),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
 				certificate: new Certificate(finalOptions.certificate)
@@ -109,7 +109,7 @@ describe('Mitm::', () => {
 		
 		it('should fetch a shadow for the connections use https correctly', async () => {
 			const httpsShadow = shadow.Store({
-				strategy: Strategy(finalOptions.strategy),
+				strategy: Strategy(finalOptions.strategy, finalOptions.onError),
 				socket: finalOptions.socket,
 				onError: finalOptions.onError,
 				certificate: new Certificate(finalOptions.certificate)
@@ -126,7 +126,7 @@ describe('Mitm::', () => {
 
 	describe('#strategy', () => {
 		it('should return a strategy', () => {
-			const strategy = Strategy(finalOptions.strategy);
+			const strategy = Strategy(finalOptions.strategy, finalOptions.onError);
 
 			assert(strategy);
 		})
@@ -134,7 +134,7 @@ describe('Mitm::', () => {
 		describe('##context', () => {
 			it('###Raw', async () => {
 				const httpShadow = shadow.Store({
-					strategy: Strategy(finalOptions.strategy),
+					strategy: Strategy(finalOptions.strategy, finalOptions.onError),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
 					certificate: new Certificate(finalOptions.certificate)
@@ -148,7 +148,7 @@ describe('Mitm::', () => {
 
 			it('###Interface', async () => {
 				const httpShadow = shadow.Store({
-					strategy: Strategy(finalOptions.strategy),
+					strategy: Strategy(finalOptions.strategy, finalOptions.onError),
 					socket: finalOptions.socket,
 					onError: finalOptions.onError,
 					certificate: new Certificate(finalOptions.certificate)

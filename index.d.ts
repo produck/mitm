@@ -20,7 +20,7 @@ declare namespace mitm {
 	 */
 
 	declare function createServer(options: {
-		strategyOptions?: object,
+		strategy?: object,
 		socket?: {
 			path: string,
 			getName(protocol: string, hostname: string, port: number): string

@@ -44,7 +44,7 @@ class MitmServer extends net.Server {
 
 		const { onError } = options;
 		const sslSupported = Boolean(options.certificate.key && options.certificate.cert);
-		const strategy = Strategy(options.strategy);
+		const strategy = Strategy(options.strategy, onError);
 		const shadowStore = shadow.Store({
 			strategy,
 			socket: options.socket,

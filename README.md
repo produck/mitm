@@ -32,12 +32,12 @@ Instantiates Mitm Server using the supplied options. This section will discuss e
 
 | Name | Type | Description |
 | -- | -- | -- |  
-| strategyOptions | Object | Strategy options. |
+| strategy | Object | Strategy options. |
 | socket | Object | Socket options. |
 | certificate | Object | Root cerificate and its storage method. |
 | onError | Function | Handle the Mitm error.  |
 
-#### parameters for strategyOptions
+#### parameters for strategy
 
 According to your needs, you can set up interception strategy. Using the following parameters.
 
@@ -76,7 +76,7 @@ With the following options, the mitm server will intercept HTTP requests, the re
 const mitm = require('@lemonce/mitm');
 
 const options = {
-	strategyOptions: {
+	strategy: {
 		request(context, respond, forward) {
 			context.response.body = 'hello, world';
 			context.response.headers = {};
@@ -89,7 +89,7 @@ const options = {
 		}
 	},
 	socket: {
-		path: path.resolve('__dirname', './socketStore'),
+		path: path.resolve(__dirname, './socketStore'),
 		getName(protocol, hostname, port) {
 			return `${protocol}-${hostname}-${port}`;
 		}
@@ -119,7 +119,7 @@ const options = {
 	sslConnect() {
 		return true;
 	},
-	strategyOptions: {
+	strategy: {
 		request(context, respond, forward) {
 			context.response.body = 'hello, world';
 			context.response.headers = {};
@@ -132,7 +132,7 @@ const options = {
 		}
 	},
 	socket: {
-		path: path.resolve('__dirname', './socketStore'),
+		path: path.resolve(__dirname, './socketStore'),
 		getName(protocol, hostname, port) {
 			return `${protocol}-${hostname}-${port}`;
 		}
@@ -171,7 +171,7 @@ const rootCA = {
 }
 
 const options = {
-	strategyOptions: {
+	strategy: {
 		sslConnect() {
 			return true;
 		},
@@ -191,7 +191,7 @@ const options = {
 		}
 	},
 	socket: {
-		path: path.resolve('__dirname', './socketStore'),
+		path: path.resolve(__dirname, './socketStore'),
 		getName(protocol, hostname, port) {
 			return `${protocol}-${hostname}-${port}`;
 		}
