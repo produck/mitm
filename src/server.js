@@ -42,12 +42,13 @@ class MitmServer extends net.Server {
 	constructor(options) {
 		super();
 
-		const { strategyOptions, socket, certificate, onError } = options;
-		const sslSupported = Boolean(certificate.key && certificate.cert);
-		const strategy = Strategy(strategyOptions);
+		const { onError } = options;
+		const sslSupported = Boolean(options.certificate.key && options.certificate.cert);
+		const strategy = Strategy(options.strategy);
 		const shadowStore = shadow.Store({
-			strategy, socket, onError,
-			certificate: new CertificateStore(certificate),
+			strategy,
+			socket: options.socket,
+			certificate: new CertificateStore(options.certificate),
 		});
 
 		this.on('connection', socket => {

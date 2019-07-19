@@ -2,18 +2,18 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = function normalize(options) {
-	const defaultOptions = defaultOptionsFactory();
+	const finalOptions = defaultOptionsFactory();
 
 	if (options) {
-		const { strategyOptions, certificate, socket, onError } = options;
+		const { strategy, certificate, socket, onError } = options;
 
-		if (strategyOptions) {
+		if (strategy) {
 			const {
-				sslConnect = defaultOptions.strategyOptions.sslConnect,
-				websocket = defaultOptions.strategyOptions.websocket,
-				request = defaultOptions.strategyOptions.request,
-				response = defaultOptions.strategyOptions.response
-			} = strategyOptions;
+				sslConnect = finalOptions.strategy.sslConnect,
+				websocket = finalOptions.strategy.websocket,
+				request = finalOptions.strategy.request,
+				response = finalOptions.strategy.response
+			} = strategy;
 
 			if (!isFunction(sslConnect)) {
 				throw new Error('`sslConnect` is not a function');
@@ -31,16 +31,16 @@ module.exports = function normalize(options) {
 				throw new Error('`response` is not a function');
 			}
 
-			defaultOptions.strategyOptions.sslConnect = sslConnect;
-			defaultOptions.strategyOptions.websocket = websocket;
-			defaultOptions.strategyOptions.request = request;
-			defaultOptions.strategyOptions.response = response;
+			finalOptions.strategy.sslConnect = sslConnect;
+			finalOptions.strategy.websocket = websocket;
+			finalOptions.strategy.request = request;
+			finalOptions.strategy.response = response;
 		}
 
 		if (certificate) {
 			const {
-				cert = defaultOptions.certificate.cert,
-				key = defaultOptions.certificate.key,
+				cert = finalOptions.certificate.cert,
+				key = finalOptions.certificate.key,
 				store
 			} = certificate;
 
@@ -56,15 +56,15 @@ module.exports = function normalize(options) {
 				throw new Error('certificate storage method `get` or `set` is not a function.');
 			}
 
-			defaultOptions.certificate.cert = cert;
-			defaultOptions.certificate.key = key;
-			defaultOptions.certificate.store = store;
+			finalOptions.certificate.cert = cert;
+			finalOptions.certificate.key = key;
+			finalOptions.certificate.store = store;
 		}
 
 		if (socket) {
 			const {
-				path = defaultOptions.socket.path,
-				getName = defaultOptions.socket.getName
+				path = finalOptions.socket.path,
+				getName = finalOptions.socket.getName
 			} = socket;
 
 			if (!path) {
@@ -75,21 +75,21 @@ module.exports = function normalize(options) {
 				throw new Error('`getName` is not a function');
 			}
 
-			defaultOptions.socket.path = path;
-			defaultOptions.socket.getName = getName;
+			finalOptions.socket.path = path;
+			finalOptions.socket.getName = getName;
 		}
 
 		if (onError && isFunction(onError)) {
-			defaultOptions.onError = onError;
+			finalOptions.onError = onError;
 		}
 	}
 
 	try {
-		fs.accessSync(defaultOptions.socket.path, fs.constants.R_OK && fs.constants.W_OK);
+		fs.accessSync(finalOptions.socket.path, fs.constants.R_OK && fs.constants.W_OK);
 	} catch (error) {
 		if (error.code === 'ENOENT') {
 			try {
-				fs.mkdirSync(defaultOptions.socket.path, { recursive: true });
+				fs.mkdirSync(finalOptions.socket.path, { recursive: true });
 			} catch (error) {
 				throw new Error('create `socketFile.path` failed.');
 			}
@@ -98,18 +98,18 @@ module.exports = function normalize(options) {
 		}
 	}
 
-	fs.readdirSync(defaultOptions.socket.path).forEach(file => {
-		const filePath = path.join(defaultOptions.socket.path, file);
+	fs.readdirSync(finalOptions.socket.path).forEach(file => {
+		const filePath = path.join(finalOptions.socket.path, file);
 
 		fs.statSync(filePath).isDirectory() ? null : fs.unlinkSync(filePath);
 	});
 
-	return defaultOptions;
+	return finalOptions;
 }
 
 function defaultOptionsFactory() {
 	return {
-		strategyOptions: {
+		strategy: {
 			sslConnect() {
 				return false;
 			},
@@ -125,7 +125,7 @@ function defaultOptionsFactory() {
 			}
 		},
 		socket: {
-			path: path.resolve('__dirname'),
+			path: path.resolve('.pipe'),
 			getName(protocol, hostname, port) {
 				return `${protocol}-${hostname}-${port}`;
 			}
