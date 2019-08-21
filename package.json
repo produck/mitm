@@ -1,6 +1,6 @@
 {
   "name": "@lemonce3/mitm",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "HTTP/HTTPS man in the middle proxy server",
   "main": "index.js",
   "dependencies": {
@@ -12,7 +12,7 @@
     "eslint": "^5.16.0",
     "http-proxy-agent": "^2.1.0",
     "mocha": "^6.2.0",
-    "ws": "^7.1.0"
+    "ws": "^7.1.2"
   },
   "scripts": {
     "test": "mocha"
@@ -22,7 +22,17 @@
     "type": "git",
     "url": "git+https://github.com/lemonce3/mitm.git"
   },
-  "keywords": [],
+  "keywords": [
+    "ssl",
+    "http",
+    "https",
+    "ws",
+    "wss",
+    "proxy",
+    "websocket",
+    "mitm",
+    "man-in-the-middle"
+  ],
   "author": "",
   "license": "MIT",
   "bugs": {
@@ -30,6 +40,7 @@
   },
   "files": [
     "/index.js",
+    "/index.d.ts",
     "/src"
   ],
   "homepage": "https://github.com/lemonce3/mitm#readme"
