@@ -108,6 +108,8 @@ module.exports = function normalize(options) {
 }
 
 function defaultOptionsFactory() {
+	const defaultCertificateStore = {};
+
 	return {
 		strategy: {
 			sslConnect() {
@@ -117,10 +119,10 @@ function defaultOptionsFactory() {
 				clientSocket.pipe(proxySocket);
 				proxySocket.pipe(clientSocket);
 			},
-			request(context, respond, forward) {
+			request(_context, _respond, forward) {
 				forward();
 			},
-			response(context, respond) {
+			response(_context, respond) {
 				respond();
 			}
 		},
@@ -134,14 +136,20 @@ function defaultOptionsFactory() {
 			cert: null,
 			key: null,
 			store: {
-				get(any) { return null; },
-				set(hostname, certKeyPair) { return null; }
+				get(hostname) {
+					return defaultCertificateStore[hostname];
+				},
+				set(hostname, certKeyPair) {
+					defaultCertificateStore[hostname] = certKeyPair;
+				}
 			}
 		},
-		onError() { return true; }
+		onError(type, message) {
+			console.log(type, message);
+		}
 	}
 }
 
 function isFunction(any) {
 	return typeof any === 'function';
-} 
+}

@@ -1,6 +1,6 @@
 const net = require('net');
 const Strategy = require('./strategy');
-const shadow = require('./shadow');
+const Shadow = require('./shadow');
 const CertificateStore = require('./certificate');
 
 const EOL = '\r\n';
@@ -45,41 +45,43 @@ class MitmServer extends net.Server {
 		const { onError } = options;
 		const sslSupported = Boolean(options.certificate.key && options.certificate.cert);
 		const strategy = Strategy(options.strategy, onError);
-		const shadowStore = shadow.Store({
+		const shadowStore = Shadow.Store({
 			strategy,
 			socket: options.socket,
 			certificate: new CertificateStore(options.certificate),
 		});
 
 		this.on('connection', socket => {
-			socket.on('error', (e) => {
-				onError('connection', e.message);
-			}).once('data', async chunk => {
+			socket.once('data', async chunk => {
 				const [method, url] = chunk.toString().split(EOL)[0].split(' ');
 
 				if (method === 'CONNECT') {
 					socket.write(BODY);
 					socket.once('data', async chunk => {
-						let proxySocket = null;
 						const [hostname, port] = url.split(':');
+						let proxySocket = null;
 
 						if (isPlainText(chunk.toString())) {
+							// ws
 							proxySocket = await connectShadow(shadowStore.fetch('http', hostname, port));
 						} else if (sslSupported && await strategy.sslConnectInterceptor(socket, chunk)) {
+							// wss + https
 							proxySocket = await connectShadow(shadowStore.fetch('https', hostname, port));
 						} else {
+							// https passthrough
 							proxySocket = net.connect(port, hostname);
 						}
 
 						send(socket, proxySocket, chunk);
 					});
 				} else {
+					// http
 					const { hostname, port } = new URL(url);
 					const proxySocket = await connectShadow(shadowStore.fetch('http', hostname, port));
 
 					send(socket, proxySocket, chunk);
 				}
-			});
+			}).on('error', error => onError('connection', error.message));
 		});
 	}
 }

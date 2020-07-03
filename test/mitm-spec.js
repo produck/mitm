@@ -23,7 +23,7 @@ describe('Mitm::', () => {
 				clientSocket.pipe(proxySocket);
 				proxySocket.pipe(clientSocket);
 			},
-			request(context, respond, forward) {
+			request(context, respond) {
 				context.response.body = 'hello, world!';
 				context.response.headers = {};
 				context.response.statusCode = 200;
@@ -106,7 +106,7 @@ describe('Mitm::', () => {
 			})
 
 		})
-		
+
 		it('should fetch a shadow for the connections use https correctly', async () => {
 			const httpsShadow = shadow.Store({
 				strategy: Strategy(finalOptions.strategy, finalOptions.onError),

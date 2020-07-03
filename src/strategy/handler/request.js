@@ -10,7 +10,7 @@ function deleteContentLength(headers) {
 	});
 }
 
-function send(origin, target) {
+function sendPayload(origin, target) {
 	if (origin.readable && origin.pipe && typeof origin.pipe === 'function') {
 		origin.pipe(target);
 	} else {
@@ -36,7 +36,7 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 					clientResponse.setHeader(key, raw.response.headers[key]);
 				});
 
-				send(raw.response.payload.body, clientResponse);
+				sendPayload(raw.response.payload.body, clientResponse);
 			}
 
 			await requestInterceptor(contextInterface, respond, function forward() {
@@ -46,16 +46,13 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 
 				const proxyRequest = shadow.request(raw.request);
 
-				proxyRequest.on('aborted', () => clientRequest.abort());
-				clientRequest.on('aborted', () => proxyRequest.abort());
+				proxyRequest.once('aborted', () => clientRequest.abort());
+				clientRequest.once('aborted', () => proxyRequest.abort());
 
-				proxyRequest.on('timeout', e => {
-					onError('timeout', e.message);
-				});
-				proxyRequest.on('error', e => {
-					onError('error', e.message);
-				});
-				proxyRequest.on('response', async proxyResponse => {
+				proxyRequest.on('timeout', e => onError('timeout', e.message));
+				proxyRequest.on('error', e => onError('error', e.message));
+
+				proxyRequest.once('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;
 
 					raw.response.statusCode = statusCode;
@@ -66,7 +63,7 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 					await responseInterceptor(contextInterface, respond);
 				});
 
-				send(raw.request.payload.body, proxyRequest);
+				sendPayload(raw.request.payload.body, proxyRequest);
 			});
 		}
 	}

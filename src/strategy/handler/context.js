@@ -28,7 +28,7 @@ function contextRequest(requestRaw) {
 				throw new Error('Invalid method string.');
 			}
 
-			return requestRaw.method = any.toUpperCase();
+			requestRaw.method = any.toUpperCase();
 		},
 
 		get url() {
@@ -36,7 +36,7 @@ function contextRequest(requestRaw) {
 		},
 
 		set url(any) {
-			return requestRaw.url = new URL(any);
+			requestRaw.url = new URL(any);
 		},
 
 		get headers() {
@@ -45,7 +45,7 @@ function contextRequest(requestRaw) {
 
 		set headers(any) {
 			if (typeof any === 'object') {
-				return requestRaw.headers = any;
+				requestRaw.headers = any;
 			}
 
 			throw new Error('`headers` MUST be a plainObject.');
@@ -57,9 +57,7 @@ function contextRequest(requestRaw) {
 
 		set body(any) {
 			requestRaw.payload.changed = true;
-
-			return requestRaw.payload.body =
-				isReadable(any) ? any : Buffer.from(any);
+			requestRaw.payload.body = isReadable(any) ? any : Buffer.from(any);
 		},
 
 		get timeout() {
@@ -68,7 +66,7 @@ function contextRequest(requestRaw) {
 
 		set timeout(any) {
 			if (typeof any === 'number') {
-				return requestRaw.timeout = Number(any);
+				requestRaw.timeout = Number(any);
 			}
 
 			throw new Error('`request.timeout` MUST be a number.')
@@ -84,7 +82,7 @@ function contextResponse(responseRaw) {
 
 		set statusCode(any) {
 			if (typeof any === 'number') {
-				return responseRaw.statusCode = any;
+				responseRaw.statusCode = any;
 			}
 		},
 
@@ -94,7 +92,7 @@ function contextResponse(responseRaw) {
 
 		set statusMessage(any) {
 			if (typeof any === 'string') {
-				return responseRaw.statusMessage = any;
+				responseRaw.statusMessage = any;
 			}
 
 			throw new Error('Status message MUST be a string.');
@@ -106,7 +104,7 @@ function contextResponse(responseRaw) {
 
 		set headers(any) {
 			if (typeof any === 'object') {
-				return responseRaw.headers = any;
+				responseRaw.headers = any;
 			}
 
 			throw new Error('`headers` MUST be a plainObject.');
@@ -118,9 +116,7 @@ function contextResponse(responseRaw) {
 
 		set body(any) {
 			responseRaw.payload.changed = true;
-
-			return responseRaw.payload.body =
-				isReadable(any) ? any : Buffer.from(any);
+			responseRaw.payload.body = isReadable(any) ? any : Buffer.from(any);
 		}
 	}
 }
@@ -145,8 +141,8 @@ exports.Raw = function Raw(clientRequest, shadow) {
 			timeout: DEFAULT_REQUEST_TIMEOUT
 		},
 		response: {
-			statusCode: null,
-			statusMessage: null,
+			statusCode: 200,
+			statusMessage: undefined,
 			headers: null,
 			payload: {
 				body: null,
