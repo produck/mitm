@@ -39,37 +39,37 @@ declare namespace mitm {
 			/**
 			 * A string specifying the HTTP request method
 			 *
-			 * Getter: get the original HTTP method from client request
-			 * Setter: set a new valid method
+			 * - Getter: get the original HTTP method from client request
+			 * - Setter: set a new valid method
 			 */
 			method: string,
 
 			/**
-			 * Getter: get the original target url
-			 * Setter: set a new url
+			 * - Getter: get the original target url
+			 * - Setter: set a new url
 			 */
 			url: string | URL,
 
 			/**
 			 * An object containing request headers
 			 *
-			 * Getter: get original request headers kv in object type.
-			 * Setter: replace to a new headers
+			 * - Getter: get original request headers kv in object type.
+			 * - Setter: replace to a new headers
 			 */
 			headers: Object,
 
 			/**
-			 * Getter: get original request payload body.
-			 * Setter: replace to a new payload body(string, buffer, stream accepted)
+			 * - Getter: get original request payload body.
+			 * - Setter: replace to a new payload body(string, buffer, stream accepted)
 			 */
 			body: Buffer | string | stream.Readable,
 
 			/**
 			 * A number specifying the socket timeout in milliseconds.
-			 * This will set the timeout before the socket is connected.
+			 * This will set the timeout **before** the socket is connected.
 			 *
-			 * Getter: get the proxy connect timeout
-			 * Setter: replace to another number(unsigned int) millisecond.
+			 * - Getter: get the proxy connect timeout
+			 * - Setter: replace to another number(unsigned int) millisecond.
 			 *
 			 * https://nodejs.org/dist/latest-v12.x/docs/api/http.html#http_http_request_options_callback
 			 *
@@ -85,8 +85,8 @@ declare namespace mitm {
 			 *
 			 * https://nodejs.org/dist/latest-v12.x/docs/api/http.html#http_message_statuscode
 			 *
-			 * Getter: get original response status code from proxy request.
-			 * Setter: replace to a specified status code.
+			 * - Getter: get response status code. Default: from proxy response.
+			 * - Setter: replace to a specified status code.
 			 */
 			statusCode: number,
 
@@ -97,8 +97,8 @@ declare namespace mitm {
 			 *
 			 * https://nodejs.org/dist/latest-v12.x/docs/api/http.html#http_response_statusmessage
 			 *
-			 * Getter: get original response status message from proxy request.
-			 * Setter: replace to a specified status message string.
+			 * - Getter: get response status message. Default: from proxy response.
+			 * - Setter: replace to a specified status message string.
 			 *
 			 * default is `undefined`
 			 */
@@ -107,14 +107,14 @@ declare namespace mitm {
 			/**
 			 * An object containing request headers
 			 *
-			 * Getter: get original response headers kv in object type.
-			 * Setter: replace to a new headers
+			 * - Getter: get response headers kv in object type.
+			 * - Setter: replace to a new headers
 			 */
 			headers: Object,
 
 			/**
-			 * Getter: get original response payload body.
-			 * Setter: replace to a new payload body(string, buffer, stream accepted)
+			 * - Getter: get response payload body. Default: proxy ``http.ServerResponse``.
+			 * - Setter: replace to a new payload body(string, buffer, stream accepted)
 			 */
 			body: Buffer | string | stream.Readable
 		}
