@@ -81,9 +81,11 @@ function contextResponse(responseRaw) {
 		},
 
 		set statusCode(any) {
-			if (typeof any === 'number') {
-				responseRaw.statusCode = any;
+			if (typeof any !== 'number') {
+				throw new TypeError('Status code MUST be a number.');
 			}
+
+			responseRaw.statusCode = any;
 		},
 
 		get statusMessage() {
@@ -91,11 +93,11 @@ function contextResponse(responseRaw) {
 		},
 
 		set statusMessage(any) {
-			if (typeof any === 'string') {
-				responseRaw.statusMessage = any;
+			if (typeof any !== 'string') {
+				throw new TypeError('Status message MUST be a string.');
 			}
 
-			throw new Error('Status message MUST be a string.');
+			responseRaw.statusMessage = any;
 		},
 
 		get headers() {
@@ -103,11 +105,11 @@ function contextResponse(responseRaw) {
 		},
 
 		set headers(any) {
-			if (typeof any === 'object') {
-				responseRaw.headers = any;
+			if (typeof any !== 'object') {
+				throw new TypeError('`headers` MUST be a plainObject.');
 			}
 
-			throw new Error('`headers` MUST be a plainObject.');
+			responseRaw.headers = any;
 		},
 
 		get body() {

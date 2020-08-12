@@ -50,7 +50,9 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				clientRequest.once('aborted', () => proxyRequest.abort());
 
 				proxyRequest.on('timeout', e => onError('timeout', e.message));
-				proxyRequest.on('error', e => onError('error', e.message));
+				proxyRequest.on('error', e => {
+					onError('proxy::snd', `<${shadow.origin}> - ${e.message}`)
+				});
 
 				proxyRequest.once('response', async proxyResponse => {
 					const { statusCode, statusMessage, headers } = proxyResponse;

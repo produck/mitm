@@ -1,2 +1,2 @@
-exports.Server = require('./src/server').MitmServer;
+exports.MitmServer = require('./src/server').MitmServer;
 exports.createServer = require('./src/server').createServer;

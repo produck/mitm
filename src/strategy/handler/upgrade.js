@@ -13,7 +13,7 @@ module.exports = function createUpgradeHandlerFactory(websocketInterceptor, onEr
 			});
 
 			proxyRequest.on('error', (e) => {
-				onError(e, e.message);
+				onError('proxy::snd(websocket)', `<${target.origin}> - ${e.message}`);
 			});
 
 			proxyRequest.on('response', proxyResponse => {

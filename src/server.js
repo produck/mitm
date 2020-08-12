@@ -14,20 +14,21 @@ function isPlainText(message) {
 }
 
 function connectShadow(shadow) {
-	return new Promise((resolve, reject) => {
-		function connector() {
+	return new Promise(resolve => {
+		function connect() {
 			const socket = net.connect(shadow.address);
 
-			resolve(socket);
-			socket.on('error', e => {
-				reject(e);
-			});
+			socket.once('error', e => {
+				if (e.code === 'ENOENT') {
+					connect()
+				}
+			}).once('connect', () => resolve(socket));
 		}
 
 		if (shadow.address) {
-			connector()
+			connect()
 		} else {
-			shadow.on('ready', connector);
+			shadow.once('ready', connect);
 		}
 	});
 }
@@ -70,6 +71,9 @@ class MitmServer extends net.Server {
 						} else {
 							// https passthrough
 							proxySocket = net.connect(port, hostname);
+							proxySocket.on('error', error => {
+								onError('proxy::snd(pass)', error.message)
+							});
 						}
 
 						send(socket, proxySocket, chunk);
@@ -81,7 +85,7 @@ class MitmServer extends net.Server {
 
 					send(socket, proxySocket, chunk);
 				}
-			}).on('error', error => onError('connection', error.message));
+			}).on('error', error => onError('client::rev', error.message));
 		});
 	}
 }

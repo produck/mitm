@@ -6,12 +6,12 @@ declare namespace mitm {
 
 	declare class MitmServer extends net.Server {
 		/**
-		 * Create mitm server instance
+		 * Create mitm server instance. Illegal to `new MitmServer()` directly
 		 *
-		 * @param options
+		 * @param options options for createing
 		 */
 
-		constructor(options: any);
+		constructor(options: options);
 	}
 
 	/**
@@ -169,7 +169,7 @@ declare namespace mitm {
 			sslConnect?(
 				socket?: net.Socket,
 				chunk?: Buffer
-			) : boolean,
+			) : boolean | Promise<boolean>
 
 			/**
 			 * When a request coming from client,
@@ -184,7 +184,7 @@ declare namespace mitm {
 				context: mitm.ContextInterface,
 				respond: respond,
 				forward: forward
-			) : void,
+			) : void | Promise<void>;
 
 			/**
 			 * When a response coming after forward() from target,
@@ -197,7 +197,7 @@ declare namespace mitm {
 			response?(
 				context: mitm.ContextInterface,
 				respond: respond
-			) : void,
+			) : void | Promise<void>;
 
 			/**
 			 * When a pair of ws socket has been established,
@@ -205,13 +205,13 @@ declare namespace mitm {
 			 *
 			 * Default is piping each other
 			 *
-			 * @param clientSocket
-			 * @param proxySocket
+			 * @param clientSocket ws from client
+			 * @param proxySocket ws to target
 			 */
 			websocket?(
 				clientSocket: net.Socket,
 				proxySocket: net.Socket
-			) : void
+			) : void | Promise<void>
 		}
 
 		interface socket {
@@ -224,9 +224,9 @@ declare namespace mitm {
 			 * How to generate socket file name.
 			 * The final pathname is `${path}${getName()}`
 			 *
-			 * @param protocol
-			 * @param hostname
-			 * @param port
+			 * @param protocol url protocol
+			 * @param hostname url hostname
+			 * @param port url port
 			 */
 			getName(protocol: string, hostname: string, port: number): string
 		}
@@ -273,7 +273,7 @@ declare namespace mitm {
 	 * The options should include strategy, socket ,certificateStore and ssl.
 	 * Otherwise, the mitm server will be creaeted and throw the exception.
 	 *
-	 * @param options
+	 * @param options options for createing
 	 */
 	declare function createServer(options: options): MitmServer;
 }
