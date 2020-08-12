@@ -20,6 +20,7 @@ function connectShadow(shadow) {
 
 			socket.once('error', e => {
 				if (e.code === 'ENOENT') {
+					socket.destroy();
 					connect()
 				}
 			}).once('connect', () => resolve(socket));

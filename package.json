@@ -1,6 +1,6 @@
 {
   "name": "@lemonce3/mitm",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "HTTP/HTTPS man in the middle proxy server",
   "main": "index.js",
   "dependencies": {
