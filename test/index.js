@@ -15,17 +15,16 @@ const options = {
 			clientSocket.pipe(proxySocket);
 			proxySocket.pipe(clientSocket);
 		},
-		// request(context, respond) {
-		// 	context.response.body = 'hello, world!';
-		// 	context.response.headers = {};
-		// 	context.response.statusCode = 200;
-		// 	context.response.statusMessage = 'test';
+		request(context, respond, forward) {
+			console.log(context.request.url);
 
-		// 	respond();
-		// },
-		// response(context, respond) {
-		// 	respond();
-		// }
+			respond();
+		},
+		response(context, respond) {
+			console.log(context.request.url);
+
+			respond();
+		}
 	},
 	socket: {
 		path: path.resolve(__dirname, '/socketStore'),

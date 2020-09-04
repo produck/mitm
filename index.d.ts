@@ -56,7 +56,7 @@ declare namespace mitm {
 			 * - Getter: get original request headers kv in object type.
 			 * - Setter: replace to a new headers
 			 */
-			headers: Object,
+			headers: object,
 
 			/**
 			 * - Getter: get original request payload body.
@@ -110,7 +110,7 @@ declare namespace mitm {
 			 * - Getter: get response headers kv in object type.
 			 * - Setter: replace to a new headers
 			 */
-			headers: Object,
+			headers: object,
 
 			/**
 			 * - Getter: get response payload body. Default: proxy ``http.ServerResponse``.
@@ -133,6 +133,11 @@ declare namespace mitm {
 		 * response namespace
 		 */
 		response: ContextInterface.Response
+
+		/**
+		 * The recommended namespace for passing data between request & response.
+		 */
+		state: object
 	}
 
 	type respond = () => void;
@@ -229,6 +234,37 @@ declare namespace mitm {
 			 * @param port url port
 			 */
 			getName(protocol: string, hostname: string, port: number): string
+		}
+
+		namespace certificate {
+			interface store {
+				/**
+				 * The implemention for fetching a server certification created.
+				 */
+				get(hostname: string): string | Promise<string>;
+
+				/**
+				 * The implemention for saving a server certification.
+				 */
+				set(hostname: string, value: string): string | Promise<string>;
+			}
+		}
+
+		interface certificate {
+			/**
+			 * Root certificate of certification authority.
+			 */
+			cert: string;
+
+			/**
+			 * The private key of the root certificate.
+			 */
+			key: string;
+
+			/**
+			 * Implemention of server certificates getting & setting.
+			 */
+			store: certificate.store
 		}
 	}
 

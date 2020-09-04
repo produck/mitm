@@ -1,6 +1,8 @@
 const Context = require('./context');
+const meta = require('../../../package.json');
 
 const CONTENT_LENGTH_REGEXP = /content-length/i;
+const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
 
 function deleteContentLength(headers) {
 	Object.keys(headers).forEach(key => {
@@ -18,10 +20,41 @@ function sendPayload(origin, target) {
 	}
 }
 
+/**
+ * @param {import('http').IncomingMessage} clientRequest
+ * @param {*} shadow
+ */
+function Raw(clientRequest, shadow) {
+	return {
+		request: {
+			url: new URL(clientRequest.url, shadow.origin),
+			method: clientRequest.method,
+			headers: clientRequest.headers,
+			payload: {
+				body: clientRequest,
+				changed: false
+			},
+			timeout: DEFAULT_REQUEST_TIMEOUT
+		},
+		response: {
+			statusCode: 200,
+			statusMessage: undefined,
+			headers: {
+				'Content-Type': 'text/plain;charset=utf-8',
+				'X-Mitm-Proxy-Server': `Mitm@${meta.version}`
+			},
+			payload: {
+				body: 'Mitm Default Response. You may set `context.response.body`.',
+				changed: false
+			}
+		}
+	};
+}
+
 module.exports = function createRequestHandlerFactory(requestInterceptor, responseInterceptor, onError) {
 	return function RequestHandlerFactory(shadow) {
 		return async function RequestHandler(clientRequest, clientResponse) {
-			const raw = Context.Raw(clientRequest, shadow);
+			const raw = Raw(clientRequest, shadow);
 			const contextInterface = Context.Interface(raw);
 
 			function respond() {

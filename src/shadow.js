@@ -18,7 +18,7 @@ exports.Store = function (options) {
 			return https.createServer({
 				key: certKeyPair.privateKey,
 				cert: certKeyPair.certificate,
-				SNICallback(hostname, cb) {
+				SNICallback(_hostname, cb) {
 					cb(null, tls.createSecureContext({
 						key: certKeyPair.privateKey,
 						cert: certKeyPair.certificate
@@ -30,8 +30,10 @@ exports.Store = function (options) {
 
 	function Shadow(protocol, hostname, port) {
 		const socketStorePath = path.resolve(socket.path, socket.getName(protocol, hostname, port));
-		const socketPath = platform === 'win32' ? path.join('\\\\?\\pipe', socketStorePath) : socketStorePath;
 		const agent = { http, https }[protocol];
+		const socketPath = platform === 'win32'
+			? path.join('\\\\?\\pipe', socketStorePath)
+			: socketStorePath;
 
 		const shadow = Object.assign(new EventEmitter(), {
 			address: null,

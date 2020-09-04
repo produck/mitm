@@ -1,8 +1,6 @@
 const stream = require('stream');
 const http = require('http');
 
-const DEFAULT_REQUEST_TIMEOUT = 2 * 60 * 1000;
-
 function isValidMethod(type) {
 	return http.METHODS.indexOf(type) !== -1;
 }
@@ -127,29 +125,6 @@ exports.Interface = function ContextInterface(raw) {
 	return {
 		request: contextRequest(raw.request),
 		response: contextResponse(raw.response),
-	};
-};
-
-exports.Raw = function Raw(clientRequest, shadow) {
-	return {
-		request: {
-			url: new URL(clientRequest.url, shadow.origin),
-			method: clientRequest.method,
-			headers: clientRequest.headers,
-			payload: {
-				body: clientRequest,
-				changed: false
-			},
-			timeout: DEFAULT_REQUEST_TIMEOUT
-		},
-		response: {
-			statusCode: 200,
-			statusMessage: undefined,
-			headers: null,
-			payload: {
-				body: null,
-				changed: false
-			}
-		}
+		state: {}
 	};
 };
