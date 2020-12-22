@@ -82,7 +82,11 @@ module.exports = function createRequestHandlerFactory(requestInterceptor, respon
 				proxyRequest.once('aborted', () => clientRequest.abort());
 				clientRequest.once('aborted', () => proxyRequest.abort());
 
-				proxyRequest.on('timeout', e => onError('timeout', e.message));
+				proxyRequest.on('timeout', () => {
+					proxyRequest.abort();
+					onError('timeout', 'Request timeout & aborted.');
+				});
+
 				proxyRequest.on('error', e => {
 					onError('proxy::snd', `<${shadow.origin}> - ${e.message}`)
 				});
