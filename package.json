@@ -1,0 +1,17 @@
+{
+	"private": true,
+	"scripts": {
+		"test": "lerna run test",
+		"coverage": "nyc --reporter=lcov npm test",
+		"lint": "eslint --fix packages/**/*.js",
+		"dev:install": "lerna bootstrap",
+		"prepublish": "npm run dev:install && npm run lint && npm run test",
+		"coveralls": "nyc npm test && nyc report --reporter=text-lcov | coveralls"
+	},
+	"devDependencies": {
+		"coveralls": "^3.1.0",
+		"eslint": "^7.23.0",
+		"lerna": "^4.0.0",
+		"nyc": "^15.1.0"
+	}
+}

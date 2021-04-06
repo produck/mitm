@@ -1,0 +1,41 @@
+{
+	"name": "@produck/mitm",
+	"version": "0.8.1",
+	"description": "HTTP/HTTPS/WS/WSS/HTTP2 man in the middle proxy server",
+	"dependencies": {
+		"node-forge": "^0.10.0"
+	},
+	"devDependencies": {
+		"axios": "^0.21.1",
+		"mocha": "^8.3.2",
+		"ws": "^7.4.4"
+	},
+	"keywords": [
+		"ssl",
+		"http",
+		"https",
+		"ws",
+		"wss",
+		"http2",
+		"proxy",
+		"websocket",
+		"mitm"
+	],
+	"author": "ChaosLee <chaos2lee@qq.com>",
+	"homepage": "https://github.com/produck/mitm#readme",
+	"license": "MIT",
+	"main": "index.js",
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/produck/mitm.git"
+	},
+	"scripts": {
+		"test": "echo \"Error: run tests from root\" && exit 1"
+	},
+	"bugs": {
+		"url": "https://github.com/produck/mitm/issues"
+	}
+}

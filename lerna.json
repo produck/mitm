@@ -1,0 +1,22 @@
+{
+  "packages": [
+    "packages/mitm",
+    "packages/mitm-website"
+  ],
+  "npmClient": "npm",
+  "command": {
+    "bootstrap": {
+      "npmClientArgs": [
+        "--registry=https://registry.npm.taobao.org"
+      ]
+    },
+    "publish": {
+      "registry": "https://registry.npmjs.org/",
+      "ignoreChanges": [
+        "*.md",
+				"example/**"
+      ]
+    }
+  },
+  "version": "independent"
+}
