@@ -2,6 +2,8 @@ const EventEmitter = require('events');
 const net = require('net');
 const forge = require('node-forge');
 
+const RSA_KEY_SIZE = 2048;
+
 const defaultAttrs = [
 	{ name: 'countryName', value: 'CN' },
 	{ name: 'organizationName', value: 'hhh' },
@@ -30,14 +32,14 @@ function getDateOffsetYear(length) {
 }
 
 function generateCertsForHostname(hostname, rootCA) {
-	const keys = forge.pki.rsa.generateKeyPair(1024);
+	const keys = forge.pki.rsa.generateKeyPair(RSA_KEY_SIZE);
 	const cert = forge.pki.createCertificate();
 
 	cert.publicKey = keys.publicKey;
 	cert.serialNumber = Math.random().toString(16).substr(2, 8);
 
 	cert.validity.notBefore = getDateOffsetYear(-1);
-	cert.validity.notAfter = getDateOffsetYear(19);
+	cert.validity.notAfter = getDateOffsetYear(1);
 
 	const caCert = forge.pki.certificateFromPem(rootCA.cert);
 	const caKey = forge.pki.privateKeyFromPem(rootCA.key);
