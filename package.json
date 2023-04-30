@@ -9,7 +9,7 @@
   "devDependencies": {
     "axios": "^0.21.0",
     "eslint": "^7.16.0",
-    "mocha": "^8.2.1",
+    "mocha": "^10.2.0",
     "ws": "^7.4.1"
   },
   "scripts": {
